@@ -28,10 +28,10 @@ def __inspect_field(data, label):
 
 def main():
     root_dir = Path("/home/olh001/.suites/resps_tides_surge_tide_interactions/forecast/hub/eccc-ppp1/gridpt/")
-    img_dir = Path("data/plots/constituent_fields/DC_tides_minus_WT")
+    img_dir = Path("data/plots/constituent_fields/DC_tides_minus_WT_v002")
 
     beg_time = datetime(2018, 4, 16, tzinfo=timezone.utc)
-    end_time = datetime(2019, 2, 12, tzinfo=timezone.utc)
+    end_time = datetime(2019, 4, 16, tzinfo=timezone.utc)
 
     img_dir = img_dir / f"{beg_time:%Y%m%d%H}_{end_time:%Y%m%d%H}"
 
@@ -39,7 +39,6 @@ def main():
     lons, lats, mask = fst.get_coords_and_mask(grid_file, nomvar="MGB", use_maskrec=False)
 
     bc_mask_file = Path("/home//olh001/Python/fst_create_mask/test.fst")
-
     _, _, bc_mask = fst.get_coords_and_mask(bc_mask_file, nomvar="MGB", use_maskrec=False)
 
     data_query = OrderedDict([
@@ -87,7 +86,7 @@ def main():
 
         lat_list = [lats[i, j] for i, j in zip(i_list, j_list)]
 
-        label_to_constit_dict[label] = get_constituents(ts_list, lat=lat_list, dt_hours=1., nprocs=30, errcalc="cboot")
+        label_to_constit_dict[label] = get_constituents(ts_list, lat=lat_list, dt_hours=1., nprocs=10, errcalc="cboot")
 
         del etas
         logger.info("Successfully executed get_constituents")
@@ -108,11 +107,11 @@ def plot_amp_and_phase(constit_dict, img_dir: Path, lons, lats, mask, select_con
         img_dir.mkdir(exist_ok=True)
 
     # params_to_plot = ["amp", "phase"]
-    params_to_plot = ["amp", ]
-    n_clevs = 11
+    params_to_plot = ["amp", "phase"]
+    n_clevs = 23
     param_to_clev = {
         "amp": np.linspace(-0.1, 0.1, n_clevs),
-        "phase": np.linspace(-360, 360, n_clevs)
+        "phase": np.linspace(-60, 60, n_clevs)
     }
 
     proj = ccrs.Orthographic(central_longitude=-60, central_latitude=50)
@@ -130,6 +129,10 @@ def plot_amp_and_phase(constit_dict, img_dir: Path, lons, lats, mask, select_con
 
             to_plot = np.ma.masked_where(~mask, constit_dict[cn][param])
 
+            if param == "phase":
+                to_plot[to_plot > 180] = to_plot[to_plot > 180] - 360
+                to_plot[to_plot < -180] = to_plot[to_plot < -180] + 360
+
             cs = ax.contourf(lons, lats, to_plot, levels=clevs,
                              cmap=plt.cm.get_cmap("coolwarm", n_clevs),
                              transform=ccrs.PlateCarree(), extend="both")
@@ -137,7 +140,7 @@ def plot_amp_and_phase(constit_dict, img_dir: Path, lons, lats, mask, select_con
             # __inspect_field(to_plot, f"{param}, {cn}")
 
             plt.colorbar(cs, ax=ax, shrink=0.98)
-            title = f"{cn}, ${{\Delta}}${param} = {label}"
+            title = fr"{cn}, ${{\Delta}}${param} = {label}"
             ax.set_title(title, fontsize=10)
 
         img_name = f"{cn}.png"
