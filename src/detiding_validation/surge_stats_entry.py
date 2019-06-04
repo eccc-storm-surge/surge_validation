@@ -193,7 +193,6 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         logger.debug("number of stations to process = {}".format(len(current_station_ids)))
         logger.debug(f"Subplots: nrows={nrows}, ncols={n_subplot_cols}")
 
-
         _label_old = label_old
         _label_new = label_new
         if len(col_names) > 1:
@@ -207,7 +206,6 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         labels = {
             "new": _label_new, "old": _label_old
         }
-
 
         i = 0
         for _i, st_id in enumerate(current_station_ids):
@@ -265,7 +263,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         fig.savefig(str(img_file), dpi=400, bbox_inches="tight")
 
         # save for overall stats into a separate file
-        fig = plt.figure(figsize=(6, 6))
+        fig = plt.figure(figsize=(5, 5))
         ax = fig.gca()
         plot_scores(ax, old_series, new_series, col_name=col_names[member_id], shared_ax=None,
                     title="All stations", labels=labels, show_avg_diff=show_avg_diff)
@@ -274,7 +272,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         ax.legend(loc="upper left")
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
-        fig.savefig(img_dir / f"all_stations_{suffix[1:]}.png", dpi=400)
+        fig.savefig(img_dir / f"all_stations_{suffix[1:]}.png", dpi=400, bbox_inches="tight")
         plt.close(fig)
 
     logging.info("Finish compare_2_simulations ...")

@@ -53,9 +53,13 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
         "ops, 150", "par, 160"
     ]
 
+    b2b_nhours = 36
+
     exp_id_to_path = dict(zip(exp_id_labels, [swl_path_old, swl_path_new]))
     compare_rdsps_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
-                           exp_id_list=exp_id_labels, img_dir=img_dir, qq_lead_hour_range=range(0, 246, 6))
+                           exp_id_list=exp_id_labels,
+                           img_dir=img_dir, qq_lead_hour_range=range(0, 0, 6),
+                           b2b_nhours=b2b_nhours)
 
 
 def pa(station_dict=default_params.station_dict):
@@ -93,7 +97,7 @@ def main():
 
     # forecast
     st_date = datetime(2019, 3, 6, 12)
-    en_date = datetime(2019, 4, 6, 12)
+    en_date = datetime(2019, 5, 30, 12)
 
     fc(station_dict=station_dict, st_date=st_date, en_date=en_date)
 

@@ -51,7 +51,7 @@ def create_plot(station_id, label_to_color: dict, label_to_data: dict,
     else:
         title = f"{station_dict[station_id]} ({station_id}){lead_t_text}"
 
-    print(list(label_to_data.keys()))
+    logger.debug(list(label_to_data.keys()))
 
     for label, color in label_to_color.items():
 
