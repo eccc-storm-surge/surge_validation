@@ -12,13 +12,15 @@ logger.setLevel(logging.DEBUG)
 def my_repr(o):
     if isinstance(o, np.ndarray):
         return np.array_repr(o, precision=6)
+
     return repr(o)
 
 
 def get_cache(cache_dir=None, token=""):
     """
     get cache decorator for caching purposes
-    :param cache_dir:
+    :param token:
+    :param cache_dir: directory where the cache data is stored
     :return:
     """
     if cache_dir is None:

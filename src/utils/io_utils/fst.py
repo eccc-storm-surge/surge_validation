@@ -15,6 +15,9 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# disable verbose output
+rmn.fstopt(rmn.FSTOP_MSGLVL, rmn.FSTOPI_MSG_FATAL)
+
 
 def get_txy(in_file: Path, vname: str):
     pass
@@ -60,10 +63,6 @@ def test_get_coords_and_mask():
     plt.title('EOF1 expressed as covariance', fontsize=16)
 
     plt.show()
-
-
-if __name__ == '__main__':
-    test_get_coords_and_mask()
 
 
 def get_b2b_data_from_dir_parallel(args):
@@ -125,8 +124,16 @@ def get_b2b_data_from_dir_for_member_id(args):
     return np.asarray(res)
 
 
-@get_cache()
-def get_b2b_data_from_dir(src_dir: Path, member_ids, data_query=None):
+@get_cache(token="get_b2b_data_from_dir")
+def get_b2b_data_from_dir(src_dir: Path, member_ids=None, data_query=None):
+
+    if member_ids is None:
+        member_ids = data_query["member_ids"]
+
     n_members = len(member_ids)
     input_list = list(zip([src_dir, ] * n_members, member_ids, [data_query, ] * n_members))
     return np.asarray([get_b2b_data_from_dir_for_member_id(inp) for inp in input_list])
+
+
+if __name__ == '__main__':
+    test_get_coords_and_mask()

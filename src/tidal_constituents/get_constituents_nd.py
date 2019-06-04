@@ -16,7 +16,7 @@ logger.setLevel(logging.DEBUG)
 
 def ttide_fit(args):
     x1d, dt_hours, lat, errcalc = args
-    print(x1d.shape, lat, dt_hours)
+    logger.debug(f"{x1d.shape, lat, dt_hours}")
     con = tt.t_tide(x1d, dt=dt_hours, synth=0, ray=0.5, out_style=None, errcalc=errcalc)
     con["xin"] = None
     con["xout"] = None
@@ -80,22 +80,16 @@ def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot"):
 
     for name_i, name in enumerate(con_names):
         name = name.strip().decode()
-        amp = np.zeros(spatial_shape).flatten()
-        phase = np.zeros(spatial_shape).flatten()
-        snr = np.zeros(spatial_shape).flatten()
-        fu = np.zeros(spatial_shape).flatten()
 
-        for i, con in enumerate(con_list):
-            tc = con["tidecon"]
-            amp[i] = tc[name_i, 0]
-            phase[i] = tc[name_i, 2]
-            snr[i] = con["snr"][name_i]
-            fu[i] = con["fu"][name_i]
+        amp = [con["tidecon"][name_i, 0] for i, con in enumerate(con_list)]
+        phase = [con["tidecon"][name_i, 2] for i, con in enumerate(con_list)]
+        snr = [con["snr"][name_i] for i, con in enumerate(con_list)]
+        fu = [con["fu"][name_i] for i, con in enumerate(con_list)]
 
-            assert len(con_names) == len(con["nameu"])
-            act = con_names
-            epc = con["nameu"]
-            assert np.all(act == epc), f"{act}\n{epc}"
+        amp = np.asarray(amp).reshape(spatial_shape)
+        phase = np.asarray(phase).reshape(spatial_shape)
+        snr = np.asarray(snr).reshape(spatial_shape)
+        fu = np.asarray(fu).reshape(spatial_shape)
 
         # print(name, len(name))
         result[name] = OrderedDict([
