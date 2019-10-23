@@ -86,14 +86,14 @@ def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
     old_series.plot(y=col_name, legend=False, color=default_params.COLOR_OLD, lw=0.5,
                     ax=ax,
                     title=title, sharex=shared_ax,
-                    sharey=shared_ax,
+                    sharey=None,
                     rot=45, label=labels["old"])
 
     if labels["new"] != labels["old"]:
 
         new_series.plot(y=col_name, legend=False, color=default_params.COLOR_NEW, lw=0.5,
                         ax=ax,
-                        sharex=shared_ax, sharey=shared_ax,
+                        sharex=shared_ax, sharey=None,
                         rot=45, label=labels["new"])
 
         # display averaged difference for all forecast hours if requested
@@ -109,10 +109,11 @@ def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
 def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
                           station_dict=default_params.station_dict,
                           label_old="RDSPS, operational",
-                          label_new="RDSPS, parallel", member_id=None, forecast_hour_tick_multiplier=24,
+                          label_new="RDSPS, parallel", member_id="",
+                          forecast_hour_tick_multiplier=24,
                           select_stations=None, n_subplot_cols=4, custom_rc_params=None,
                           color_old="b", color_new="r", show_avg_diff=True,
-                          qq_lead_hour_range=range(244)):
+                          qq_lead_hour_range=range(244), max_lead_hour=None):
     logging.info("Start compare_2_simulations ...")
     if custom_rc_params is None:
         custom_rc_params = {}
@@ -120,8 +121,8 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
     img_dir.mkdir(exist_ok=True, parents=True)
 
     # read the data into memory
-    swl_old = io_manager.read_wl_station_data(swl_path_old, station_dict=station_dict)
-    swl_new = io_manager.read_wl_station_data(swl_path_new, station_dict=station_dict)
+    swl_old = io_manager.read_wl_station_data(swl_path_old, station_dict=station_dict, max_lead_hour=max_lead_hour)
+    swl_new = io_manager.read_wl_station_data(swl_path_new, station_dict=station_dict, max_lead_hour=max_lead_hour)
 
     # set font size
     if custom_rc_params is None:
@@ -133,7 +134,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
     label_to_data = OrderedDict([(label_old, swl_old), (label_new, swl_new)])
     label_to_color = OrderedDict([(label_old, color_old), (label_new, color_new)])
 
-    print(list(label_to_data.keys()))
+    logger.debug(list(label_to_data.keys()))
 
     for lead in qq_lead_hour_range:
         qqplot(
@@ -153,7 +154,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         "gamma_varobsallvhour": r"$\gamma^2_{adj}$"
     }
 
-    if member_id is None:
+    if member_id is None or len(member_id) == 0:
         member_id = 0
 
     stids_not_overall = default_params.ignore_in_overall
@@ -195,20 +196,24 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
 
         _label_old = label_old
         _label_new = label_new
+
+        # TODO: find a better way to handle ensembles
+        member_col_index = 0
+
         if len(col_names) > 1:
             if member_id == "":
-                _label_old = f"{label_old} (member {col_names[0][3:6]})" if len(col_names) > 1 else label_old
-                _label_new = f"{label_new} (member {col_names[0][3:6]})" if len(col_names) > 1 else label_new
+                _label_old = f"{label_old} ({col_names[0][3:6]})" if len(col_names) > 1 else label_old
+                _label_new = f"{label_new} ({col_names[0][3:6]})" if len(col_names) > 1 else label_new
             else:
-                _label_old = f"{label_old} (member {member_id:03d})" if len(col_names) > 1 else label_old
-                _label_new = f"{label_new} (member {member_id:03d})" if len(col_names) > 1 else label_new
+                _label_old = f"{label_old} ({member_id})" if len(col_names) > 1 else label_old
+                _label_new = f"{label_new} ({member_id})" if len(col_names) > 1 else label_new
 
         labels = {
             "new": _label_new, "old": _label_old
         }
 
         i = 0
-        for _i, st_id in enumerate(current_station_ids):
+        for _i, st_id in enumerate(sorted(current_station_ids)):
 
             st_name = station_dict[st_id]
 
@@ -232,7 +237,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
             new_series = swl_stats_new[0].xs(st_id, level="station_id")
 
             plot_scores(ax, old_series, new_series,
-                        col_name=col_names[member_id],
+                        col_name=col_names[member_col_index],
                         shared_ax=shared_ax,
                         title=f"{st_name} ({st_id})",
                         show_avg_diff=show_avg_diff, labels=labels)
@@ -249,7 +254,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         old_series = swl_stats_old[1]
         new_series = swl_stats_new[1]
 
-        plot_scores(ax, old_series, new_series, col_name=col_names[member_id], shared_ax=shared_ax,
+        plot_scores(ax, old_series, new_series, col_name=col_names[member_col_index], shared_ax=shared_ax,
                     title="All stations", labels=labels, show_avg_diff=show_avg_diff)
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
@@ -259,20 +264,29 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
         st_time = swl_old[io_manager.TIME_COL_NAME].min()
         en_time = swl_old[io_manager.TIME_COL_NAME].max()
-        img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.png"
+
+        if max_lead_hour is not None:
+            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.png"
+        else:
+            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.png"
         fig.savefig(str(img_file), dpi=400, bbox_inches="tight")
 
         # save for overall stats into a separate file
         fig = plt.figure(figsize=(5, 5))
         ax = fig.gca()
-        plot_scores(ax, old_series, new_series, col_name=col_names[member_id], shared_ax=None,
+        plot_scores(ax, old_series, new_series, col_name=col_names[member_col_index], shared_ax=None,
                     title="All stations", labels=labels, show_avg_diff=show_avg_diff)
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
         ax.legend(loc="upper left")
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
-        fig.savefig(img_dir / f"all_stations_{suffix[1:]}.png", dpi=400, bbox_inches="tight")
+        if max_lead_hour is not None:
+            img_file = img_dir / f"all_stations_{suffix[1:]}_max_lead_{max_lead_hour}.png"
+        else:
+            img_file = img_dir / f"all_stations_{suffix[1:]}.png"
+
+        fig.savefig(img_file, dpi=400, bbox_inches="tight")
         plt.close(fig)
 
     logging.info("Finish compare_2_simulations ...")

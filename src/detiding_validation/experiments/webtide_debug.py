@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from detiding_validation.experiments.FC70H17V2 import compare_rdsps_forecast
+from detiding_validation.experiments.FC70H17V2 import compare_forecast
 from collections import OrderedDict
 
 
@@ -82,14 +82,14 @@ def main():
         "do_full_forecast_timeseries": False
     }
 
-    compare_rdsps_forecast(img_dir=img_dir, exp_id_list=exp_id_list,
-                           exp_id_to_path=exp_id_store,
-                           b2b_nhours=-1,
-                           station_dict=station_dict,
-                           score_plots_params=score_plots_params,
-                           qq_lead_hour_range=range(1, 2),
-                           st_time=st_time, en_time=en_time,
-                           options=options)
+    compare_forecast(img_dir=img_dir, exp_id_list=exp_id_list,
+                     exp_id_to_path=exp_id_store,
+                     b2b_nhours=-1,
+                     station_dict=station_dict,
+                     score_plots_params=score_plots_params,
+                     qq_lead_hour_range=range(1, 2),
+                     st_time=st_time, en_time=en_time,
+                     options=options)
 
 
 if __name__ == '__main__':

@@ -23,7 +23,31 @@ station_dict = OrderedDict([
     ("905", "St Johns, NF"),
     ("990", "Bonavista, NF"),
     ("1430", "Nain, NF"),
+    ("2246", "Saint-Pierre, FR"),
+    ("1040", "Carmanville, NL"),
+    ("1098", "Springdale, NL"),
+    ("1170", "St. Anthony, NL"),
+    ("1186", "Henley Harbour, NL"),
+    ("1630", "Pictou, NS"),
+    ("1915", "Rustico, PE"),
+    ("2375", "Southwest Point, QC"),
+    ("2550", "Harrington Harbour, QC"),
+    ("880", "Trepassey, NL"),
+    ("325", "Digby, NS"),
+    ("475", "Mill Cove, NS"),
+    ("576", "Point Tupper, NS"),
+    ("2590", "Forteau, NL"),
+    ("2633", "Savage Cove, NL"),
+    ("2685", "Lark Harbour, NL"),
+    ("2840", "Baie-Comeau, QC"),
+    ("2935", "Ste-Anne-des-Monts, QC"),
+    ("550", "Sable Island, NS"),
+    ("900", "Bay Bulls, NL"),
+    ("1050", "Fogo, NL"),
+    ("1680", "Wood Islands, PE"),
+
 ])
+
 
 
 ignore_in_overall = [491]

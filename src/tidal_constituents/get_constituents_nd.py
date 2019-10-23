@@ -15,16 +15,20 @@ logger.setLevel(logging.DEBUG)
 
 
 def ttide_fit(args):
-    x1d, dt_hours, lat, errcalc = args
-    logger.debug(f"{x1d.shape, lat, dt_hours}")
-    con = tt.t_tide(x1d, dt=dt_hours, synth=0, ray=0.5, out_style=None, errcalc=errcalc)
+    x1d, dt_hours, lat, errcalc, constitnames = args
+    # logger.debug(f"{x1d.shape, lat, dt_hours}")
+    # synth is -1 for performance, since xout is not used anyway here.
+    con = tt.t_tide(x1d, dt=dt_hours, synth=-1, ray=0.5, out_style=None,
+                    errcalc=errcalc, constitnames=constitnames)
+
     con["xin"] = None
     con["xout"] = None
+    # logger.debug(con["nameu"])
     return con
 
 
 @get_cache(token="get_constituents")
-def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot"):
+def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot", constitnames=None):
     """
     The first dimension is expected to be time (nans are OK)
     :param errcalc: type of error calculation in ttide (for now ercalc should be only cboot to get correct values for
@@ -35,6 +39,9 @@ def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot"):
     :param data: 3d field (t, x, y) of elevations
     :returns dict(constit_name=dict(amp=amp2d(x, y), phase=phase2d(x, y), snr=snr2d(x, y)))
     """
+
+    if constitnames is None:
+        constitnames = ["M2", ]
 
     data = np.asarray(data)
 
@@ -60,17 +67,23 @@ def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot"):
     assert in_data.shape[0] == lat.shape[0], f"lat.shape[0]={lat.shape[0]}, in_data.shape[0]={in_data.shape[0]}"
 
     in_params = zip([in_data[i, :] for i in range(in_data.shape[0])],
-                    itt.repeat(dt_hours, in_data.shape[0]), lat, itt.repeat(errcalc, in_data.shape[0]))
+                    itt.repeat(dt_hours, in_data.shape[0]), lat,
+                    itt.repeat(errcalc, in_data.shape[0]),
+                    itt.repeat(constitnames, in_data.shape[0]))
 
     logger.debug(f"Spawning {nprocs} processes")
 
     if nprocs > 1:
         pool = Pool(processes=nprocs)
-        con_list = pool.map(ttide_fit, list(in_params))
+        con_list = pool.map(ttide_fit, in_params)
     else:
-        con_list = [ttide_fit(par) for par in list(in_params)]
+        con_list = [ttide_fit(par) for par in in_params]
 
     con_names = con_list[0]["nameu"]
+
+    logger.debug("Verification stats")
+    logger.debug([con_list[0]["tidecon"].mean(), con_list[0]["tidecon"].std()])
+    logger.debug([con_list[-1]["tidecon"].mean(), con_list[-1]["tidecon"].std()])
 
     # print(con_list[0])
 
@@ -100,6 +113,19 @@ def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot"):
         ])
 
     return result
+
+
+def reshape_constituents_to_mask(constit_dict: dict, mask):
+    """
+    Reshape constituent fields from 1d to 2d masked arrays according to the mask
+    :param constit_dict:
+    :param mask:
+    """
+    for cn, param_to_vals in constit_dict.items():
+        for param, cvals in param_to_vals.items():
+            d = np.ma.masked_all(mask.shape)
+            d[mask] = cvals
+            param_to_vals[param] = d
 
 
 def main():

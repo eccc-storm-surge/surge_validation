@@ -41,6 +41,8 @@ def generate_members(n_members=21, stamp_dir: Path = None,
         fphi = get_perturbation_fractions(max_perturbation_fraction[new_name]["phase"], n_members=n_members)
 
         logger.debug(base_data.head())
+        logger.debug(f"phase perturbation factors: {fphi}")
+        logger.debug(f"amplitude perturbation factors: {famp}")
 
         # matrices containing amplitudes and phases for all members
         damp = base_data.loc[:, 1].values.reshape((len(base_data), 1)).dot(famp.reshape((len(famp), 1)).T)
@@ -52,12 +54,7 @@ def generate_members(n_members=21, stamp_dir: Path = None,
 
         logger.debug(f"damp.shape={damp.shape}")
 
-        # amplitudes are always positive, make phase shift of pi for the negative damp
-        # dphi[damp < 0] += 180
-        # dphi[dphi > 180] = 180
-        # dphi[dphi < -180] = -180
-
-        # damp[damp < 0] *= -1
+        logger.debug(f"perturbed phases: {dphi[1, :]}")
 
         # save the perturbed amplitudes and phases into files
         for m_index in range(n_members):
@@ -96,6 +93,33 @@ def test():
                      max_perturbation_fraction=max_perturbation_fraction, n_members=n_members)
 
 
+def gen_perturbations_nwatl():
+    """
+    perutrbations of nwatl webtide dataset
+    """
+    stm_dir = Path("/home/olh001/C_CPP/WebTide_batch/data/nwatl")
+    out_dir = Path("data/wt_perturbations_nwatl_1.0.3_O1")
+
+    fake_name_to_base_name = {
+        # "M2": "M2",
+        "O1": "O1"
+    }
+
+    max_perturbation_fraction = {
+        # "M2": {"amp": 0.1, "phase": 0.1},
+        "O1": {"amp": 0.1, "phase": 0.1}
+    }
+
+    # make sure that member 0 is not perturbed
+    n_members = 21
+
+    out_dir.mkdir(exist_ok=True, parents=True)
+
+    generate_members(stamp_dir=stm_dir, out_dir=out_dir,
+                     fake_name_to_base_name=fake_name_to_base_name,
+                     max_perturbation_fraction=max_perturbation_fraction, n_members=n_members)
+
+
 def test_get_perturbation_fractions():
     # make sure that member 0 is not perturbed
     n_members = 21
@@ -119,4 +143,5 @@ def test_get_perturbation_fractions():
 
 if __name__ == '__main__':
     # test_get_perturbation_fractions()
-    test()
+    # test()
+    gen_perturbations_nwatl()

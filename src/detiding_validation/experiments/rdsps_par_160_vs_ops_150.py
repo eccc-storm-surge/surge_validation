@@ -8,7 +8,7 @@ from detiding_validation.config import default_params
 from datetime import datetime
 
 from detiding_validation.surge_stats_entry import compare_2_simulations
-from detiding_validation.experiments.FC70H17V2 import compare_rdsps_forecast
+from detiding_validation.experiments.FC70H17V2 import compare_forecast
 
 EXP_ID = "par_160_vs_ops_150"
 
@@ -55,11 +55,16 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     b2b_nhours = 36
 
+    score_plots_params = {
+        "forecast_hour_tick_multiplier": 24,
+        "max_lead_hour": 6 * 24
+    }
+
     exp_id_to_path = dict(zip(exp_id_labels, [swl_path_old, swl_path_new]))
-    compare_rdsps_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
-                           exp_id_list=exp_id_labels,
-                           img_dir=img_dir, qq_lead_hour_range=range(0, 0, 6),
-                           b2b_nhours=b2b_nhours)
+    compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
+                     exp_id_list=exp_id_labels,
+                     img_dir=img_dir, qq_lead_hour_range=range(0, 0, 6),
+                     b2b_nhours=b2b_nhours, score_plots_params=score_plots_params)
 
 
 def pa(station_dict=default_params.station_dict):

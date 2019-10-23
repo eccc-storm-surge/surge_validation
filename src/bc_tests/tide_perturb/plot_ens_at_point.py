@@ -4,10 +4,22 @@ from rpnpy.rpndate import RPNDate
 import pandas as pd
 import matplotlib.pyplot as plt
 
+rmn.fstopt(rmn.FSTOP_MSGLVL, rmn.FSTOPI_MSG_FATAL)
+
 
 def main():
-    inp_dir = Path("/home/olh001/.suites/resps_tides_perturb/forecast/hub/eccc-ppp2/gridpt/tides")
-    exp_label = "WT_001"
+    # inp_dir = Path("/home/olh001/.suites/resps_tides_perturb/forecast/hub/eccc-ppp2/gridpt/tides_all_constit")
+    # exp_label = "WT_001"
+
+    # inp_dir = Path("/home/olh001/.suites/resps_tides_perturb/forecast/hub/eccc-ppp2/gridpt/tides_M2_dphimax0.5")
+    # exp_label = "WT_M2_dphimax0.5"
+
+    # inp_dir = Path("/home/olh001/.suites/resps_tides_perturb/forecast/hub/eccc-ppp2/gridpt/tides_M2")
+    # exp_label = "WT_M2"
+
+    inp_dir = Path("/home/olh001/.suites/resps_tides_perturb/forecast/hub/eccc-ppp2/gridpt/tides_1yr")
+    exp_label = "WT_1yr"
+
 
     img_dir = Path(f"data/plots/points_{exp_label}")
 
@@ -20,9 +32,9 @@ def main():
     bof_i = 83
     bof_j = 39
 
-    # i, j = bof_i, bof_j
-    i, j = 308, 13
-
+    #i, j = bof_i, bof_j
+    # i, j = 308, 13
+    i, j = 226, 34
     flist = [f for f in inp_dir.iterdir() if f.name.startswith(exp_t)]
 
     data = {"time": [], "value": [], "member": []}

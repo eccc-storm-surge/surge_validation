@@ -9,7 +9,7 @@ from datetime import datetime
 from detiding_validation.plot_timeseries_per_station import compare_sims_timeseries_back2back
 from detiding_validation.surge_stats_entry import compare_2_simulations
 
-from detiding_validation.experiments.FC70H17V2 import compare_rdsps_forecast
+from detiding_validation.experiments.FC70H17V2 import compare_forecast
 
 EXP_ID = "par_150_vs_ops_140"
 
@@ -65,10 +65,10 @@ def fc_cpop_17jan2019(station_dict=default_params.station_dict, st_date=None, en
     }
 
     exp_id_to_path = dict(zip(exp_id_labels, [swl_path_old, swl_path_new]))
-    compare_rdsps_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
-                           exp_id_list=exp_id_labels,
-                           img_dir=img_dir,
-                           n_subplot_cols=3, plot_params=plot_params)
+    compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
+                     exp_id_list=exp_id_labels,
+                     img_dir=img_dir,
+                     n_subplot_cols=3, plot_params=plot_params)
 
 
 def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
@@ -89,7 +89,7 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
     ]
 
     exp_id_to_path = dict(zip(exp_id_labels, [swl_path_old, swl_path_new]))
-    compare_rdsps_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path, exp_id_list=exp_id_labels, img_dir=img_dir)
+    compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path, exp_id_list=exp_id_labels, img_dir=img_dir)
 
 
 def fc_all_raw(station_dict=default_params.station_dict, st_date=None, en_date=None):
@@ -109,7 +109,7 @@ def fc_all_raw(station_dict=default_params.station_dict, st_date=None, en_date=N
     ]
 
     exp_id_to_path = dict(zip(exp_id_labels, [swl_path_old, swl_path_new]))
-    compare_rdsps_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path, exp_id_list=exp_id_labels, img_dir=img_dir)
+    compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path, exp_id_list=exp_id_labels, img_dir=img_dir)
 
 
 def pa(station_dict=default_params.station_dict):

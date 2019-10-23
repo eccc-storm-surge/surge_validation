@@ -120,7 +120,11 @@ def plot_diff_time_series_for_station(swl, st_id, station_dict=default_params.st
 def plot_time_series_for_station_many_models(twl_obs, swl_list, st_id, station_dict=default_params.station_dict,
                                              st_time=None, en_time=None, img_dir=None, model_label_list=(),
                                              model_colors=("b", "r"),
-                                             run_freq_hours=6, ylim=None, linewidth=1):
+                                             run_freq_hours=6, ylim=None, linewidth=1, member_id=""):
+
+    model_label_to_color = dict(zip(model_label_list, model_colors))
+    model_label_to_series = {}
+
     # Select and plot obs on top of the model data
     st_sel_obs = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id]
     st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] <= run_freq_hours]
@@ -148,29 +152,64 @@ def plot_time_series_for_station_many_models(twl_obs, swl_list, st_id, station_d
             continue
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-        st_sel_mod.asfreq("60T").plot(y=["mod", ],
-                                      ax=axes[0], color=[model_color, ], legend=False, grid=True, linewidth=linewidth)
+        to_plot = st_sel_mod.asfreq("60T")
+        to_plot.plot(y=["mod" + member_id, ],
+                     ax=axes[0], color=[model_color, ], legend=False, grid=True, linewidth=linewidth)
+
+        model_label_to_series[model_label] = to_plot["mod" + member_id]
 
     st_sel_obs.plot(y=["obs"], ax=axes[0], color=["k"], legend=False, linewidth=linewidth * 2)
+    model_label_to_series["obs"] = st_sel_obs["obs"]
+
+    same_mod = len(np.unique(model_label_list)) == 1
+
+    line_obs = Line2D([0], [0], color="k", label=r"$\eta_{obs} - \eta_{T}$", linewidth=linewidth * 2)
+    lines_mod = [
+        Line2D([0], [0], color=c, label=r"$\eta_{S}$, " + f"{model_label}", linewidth=linewidth) for
+        c, model_label in zip(model_colors, model_label_list if not same_mod else [model_label_list[0], ])
+    ]
+    legend_handles = [line_obs, ] + lines_mod
 
     axes[0].set_xlim(st_time, en_time)
     axes[0].legend(title=station_dict[st_id],
-                   handles=[Line2D([0], [0], color="k", label=r"$\eta_{obs} - \eta_{T}$", linewidth=linewidth * 2), ] +
-                           [Line2D([0], [0], color=c, label=r"$\eta_{S}$, " + f"{model_label}", linewidth=linewidth) for
-                            c, model_label in zip(model_colors, np.unique(model_label_list))]
-                   )
+                   handles=legend_handles)
     axes[0].grid(which="minor", linestyle="dashed", linewidth=0.3)
     if ylim is not None:
         axes[0].set_ylim(*ylim)
+
+    draw_mpl_table(model_label_to_color, model_label_to_series)
 
     plt.savefig(str(img_dir / f"{st_id}.png"), dpi=300, bbox_inches="tight")
     plt.close(axes[0].figure)
 
 
+def draw_mpl_table(lab_to_color: dict, lab_to_series: dict):
+    columns = (r"$\gamma^2$", r"$\sigma_{\varepsilon}$")
+    rows = sorted(lab_to_color)
+    cell_text = []
+
+    obs = lab_to_series["obs"].dropna()
+
+    for lab in rows:
+        mod = lab_to_series[lab].loc[obs.index]
+
+        gamma2 = np.std(mod.values - obs.values) ** 2 / np.std(obs.values) ** 2
+        sigma = np.std(mod.values - obs.values)
+
+        cell_text.append([f"{gamma2:.2f}", f"{sigma:.4f}"])
+
+    plt.table(
+        cellText=cell_text,
+        rowLabels=rows,
+        colLabels=columns,
+        loc="top"
+    )
+
+
 def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, station_dict=default_params.station_dict,
                                                              st_time=None, en_time=None, img_dir=None,
                                                              model_label_list=(), model_colors=("b", "r"),
-                                                             ylim=None, linewidth=1):
+                                                             ylim=None, linewidth=1, member_id=""):
     # detided data
     st_sel_by_station = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id]
 
@@ -195,13 +234,10 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
 
             st_sel_mod = st_sel_mod.sort_values(io_manager.TIME_COL_NAME)
 
-            print(len(st_sel_mod))
-            print(st_sel_mod.iloc[:, -1])
-
             assert len(st_sel_mod) > 0, f"No model data data for {st_id}"
 
             st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-            st_sel_mod.asfreq("60T").plot(y=["mod", ],
+            st_sel_mod.asfreq("60T").plot(y=["mod" + member_id, ],
                                           ax=axes[0], color=[model_color, ], legend=False, grid=True,
                                           linewidth=linewidth)
 
@@ -209,7 +245,7 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
         st_sel = st_sel.set_index(io_manager.TIME_COL_NAME)
         st_sel = st_sel.asfreq("60T")
         if len(st_sel.dropna()) == 0:
-            logging.warning(f"No obs data for {st_id} and {do}, skipping it.")
+            logger.warning(f"No obs data for {st_id} and {do}, skipping it.")
             continue
 
         st_sel.plot(y=["obs"], ax=axes[0], color=["k"], legend=False, linewidth=linewidth * 2)
@@ -244,7 +280,7 @@ def main(station_dict=default_params.station_dict):
     swl_path = "/home/olh001/MATLAB/detide/data/data_for_scoring_rdsps_parallel_2018042400_2018072000_datefix/surge_rdsps_parallel.dat"
     swl = io_manager.read_wl_station_data(swl_path, station_dict=station_dict)
 
-    print(swl.head())
+    logger.debug(swl.head())
 
     for st_id in default_params.station_dict:
         plot_time_series_for_station(twl, swl, st_id, st_time=st_time, en_time=en_time,
@@ -257,9 +293,10 @@ def main(station_dict=default_params.station_dict):
 def compare_sims_timeseries_back2back(data_labels: list = None, data_paths: dict = None, data_colors: dict = None,
                                       plots_dir: Path = None,
                                       station_dict=default_params.station_dict, st_time=None, en_time=None,
-                                      run_freq_hours=12, linewidth=1, b2b_cutoff_hours=1000):
+                                      run_freq_hours=12, linewidth=1, b2b_cutoff_hours=1000, member_id=""):
     """
     Use for comparing timeseries, more or less general interface
+    :param member_id:
     :param run_freq_hours:
     :param linewidth:
     :param b2b_cutoff_hours: only plot first b2b_cutoff_hours
@@ -291,13 +328,13 @@ def compare_sims_timeseries_back2back(data_labels: list = None, data_paths: dict
         plot_time_series_for_station_many_models(None, swl_list, st_id, st_time=st_time, en_time=en_time,
                                                  img_dir=plots_dir, model_label_list=model_labels,
                                                  model_colors=model_colors, run_freq_hours=run_freq_hours,
-                                                 linewidth=linewidth, station_dict=station_dict)
+                                                 linewidth=linewidth, station_dict=station_dict, member_id=member_id)
 
 
 def compare_sims_timeseries_one_plot_per_fc(data_labels: list = None, data_paths: dict = None, data_colors: dict = None,
                                             plots_dir: Path = None,
                                             station_dict=default_params.station_dict, st_time=None, en_time=None,
-                                            linewidth=1):
+                                            linewidth=1, member_id=""):
     """
     Use for comparing timeseries, more or less general interface
     :param data_labels:
@@ -323,7 +360,8 @@ def compare_sims_timeseries_one_plot_per_fc(data_labels: list = None, data_paths
         plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st_time=st_time, en_time=en_time,
                                                                  img_dir=plots_dir, model_label_list=model_labels,
                                                                  model_colors=model_colors,
-                                                                 linewidth=linewidth, station_dict=station_dict)
+                                                                 linewidth=linewidth, station_dict=station_dict,
+                                                                 member_id=member_id)
 
 
 def main_compare_sims(station_dict=default_params.station_dict):

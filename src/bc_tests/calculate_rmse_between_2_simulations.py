@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import numpy as np
 
-from tidal_constituents.get_constituents_nd import get_constituents
+from tidal_constituents.get_constituents_nd import get_constituents, reshape_constituents_to_mask
 from utils.io_utils.fst import get_coords_and_mask, get_b2b_data_from_dir
 
 from rpnpy.librmn import all as rmn
@@ -116,15 +116,6 @@ def calculate_rmse(dir1: Path, query1: dict,
             n_cur += n
 
     return rmse_cur
-
-
-def reshape_constituents_to_mask(constit_dict: dict, mask):
-    for cn, param_to_vals in constit_dict.items():
-        for param, cvals in param_to_vals.items():
-            d = np.ma.masked_all(mask.shape)
-            d[mask] = cvals
-            param_to_vals[param] = d
-
 
 
 def test():

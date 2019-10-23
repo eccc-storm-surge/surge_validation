@@ -31,21 +31,43 @@ def get_coords_and_mask(in_file: Path, nomvar="ETAS", use_maskrec=True):
     :param use_maskrec: if True uses a corresonding @@ record of the nomvar to get the mask values
     :return: lons, lats, mask
     """
+
+    lons, lats, mask_rec = get_coords_and_mask_record(in_file, nomvar=nomvar, use_maskrec=use_maskrec)
+
+    return lons, lats, mask_rec["d"] > 0.5
+
+
+def get_records_for_coords_and_mask(in_file: Path, nomvar="ETAS"):
+    funit = rmn.fstopenall(str(in_file))
+
+    typvar = "@@"
+    key_mask = rmn.fstinl(funit, nomvar=nomvar, typvar=typvar)[0]
+    mask_rec = rmn.fstluk(key_mask)
+
+    coord_keys = [rmn.fstinl(funit, ip1=mask_rec["ip1"], ip2=mask_rec["ip2"], ip3=mask_rec["ip3"])]
+
+    coords = [rmn.fstluk(k) for k in coord_keys]
+
+    rmn.fstcloseall(funit)
+
+    return coords, mask_rec
+
+
+def get_coords_and_mask_record(in_file: Path, nomvar="ETAS", use_maskrec=True):
     funit = rmn.fstopenall(str(in_file))
 
     typvar = "@@" if use_maskrec else ""
     key_mask = rmn.fstinl(funit, nomvar=nomvar, typvar=typvar)[0]
 
     meta_mask = rmn.fstprm(key_mask)
-    mask = rmn.fstluk(key_mask)["d"] > 0.5
+    mask_rec = rmn.fstluk(key_mask)
 
     grid = rmn.readGrid(funit, meta_mask)
     grid_ll = rmn.gdll(grid)
     lons, lats = grid_ll["lon"], grid_ll["lat"]
 
     rmn.fstcloseall(funit)
-
-    return lons, lats, mask
+    return lons, lats, mask_rec
 
 
 def test_get_coords_and_mask():
@@ -71,7 +93,11 @@ def get_b2b_data_from_dir_parallel(args):
 
 
 def get_b2b_data_from_dir_for_member_id(args):
-    src_dir, member_id, data_query = args
+
+    # TODO: check if there is no issues with the order of the data,
+    # performance => do not duplicate paths
+
+    src_dir, member_id, data_query, data_mask = args
 
     if data_query is None:
         data_query = {}
@@ -96,7 +122,6 @@ def get_b2b_data_from_dir_for_member_id(args):
         df = pd.DataFrame.from_dict(
             {"key": keys, "vh": vh_list, "vd": date_list}
         )
-        df["path"] = fpath
 
         # filter by date
         if None not in [beg_t, end_t]:
@@ -105,33 +130,39 @@ def get_b2b_data_from_dir_for_member_id(args):
         # filter by valid hour
         df = df[(df["vh"] > 0) & (df["vh"] <= n_b2b_hours)]
 
+        if data_mask is None:
+            df["field"] = [rmn.fstluk(k)["d"] for k in df["key"]]
+        else:
+            df["field"] = [rmn.fstluk(k)["d"][data_mask] for k in df["key"]]
+
+        logger.debug(f"(fst) read {len(df)} records into memory")
+
         df_list.append(df)
+
+        # read selected fields into memory
 
         rmn.fstcloseall(funit)
 
     df = pd.concat(df_list)
+    df.sort_values("vd", inplace=True)
 
-    # read in the data into memory
-    res = []
-    for path, meta_df in df.groupby("path"):
-        funit = rmn.fstopenall(str(path))
-        res.extend([rmn.fstluk(int(k))["d"] for k in meta_df["key"].values])
-
-        logger.debug(f"Read {len(res)} fields into memory")
-
-        rmn.fstcloseall(funit)
-
-    return np.asarray(res)
+    return np.asarray([field for field in df["field"].values])
 
 
 @get_cache(token="get_b2b_data_from_dir")
-def get_b2b_data_from_dir(src_dir: Path, member_ids=None, data_query=None):
+def get_b2b_data_from_dir(src_dir: Path, member_ids=None, data_query=None, data_mask=None):
+    """
 
+    :param src_dir:
+    :param member_ids:
+    :param data_query:
+    :return: data[member_index, t, x, y]
+    """
     if member_ids is None:
         member_ids = data_query["member_ids"]
 
     n_members = len(member_ids)
-    input_list = list(zip([src_dir, ] * n_members, member_ids, [data_query, ] * n_members))
+    input_list = list(zip([src_dir, ] * n_members, member_ids, [data_query, ] * n_members, [data_mask, ] * n_members))
     return np.asarray([get_b2b_data_from_dir_for_member_id(inp) for inp in input_list])
 
 

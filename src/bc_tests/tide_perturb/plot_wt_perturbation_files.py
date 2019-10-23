@@ -61,11 +61,13 @@ def plot_wt_perturbations(data_dir: Path, control_mem_id="000", skiprows=3):
     ax.set_title("Pha.")
     plot_member_scatter(ax, pha, control_mem_id=control_mem_id, npoints=None)
 
-    fig.savefig("data/plots/wt_perturbation_constit.png", dpi=300, bbox_inches="tight")
+    fig.savefig("data/plots/wt_perturbation_constit_nwatl.png", dpi=300, bbox_inches="tight")
 
 
 def test():
-    data_dir = Path("data/wt_perturbations")
+    # data_dir = Path("data/wt_perturbations")
+    # data_dir = Path("/home/olh001/.suites/resps_tides_perturb/forecast/constants/wt_perturbations")
+    data_dir = Path("data/wt_perturbations_nwatl_1.0.0")
     plot_wt_perturbations(data_dir=data_dir)
 
 

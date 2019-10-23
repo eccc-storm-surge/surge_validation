@@ -18,7 +18,7 @@ known_formats = [SPACE_SEPARATED_XDAT, MODEL_AND_OBS_ONE_FILE]
 
 
 def read_wl_station_data(data_store, station_dict=default_params.station_dict,
-                          format=MODEL_AND_OBS_ONE_FILE, fname_suffix=".dat"):
+                         format=MODEL_AND_OBS_ONE_FILE, fname_suffix=".dat", max_lead_hour=None):
     """
     The data is returned as a pandas dataframe {time, station_id, obs, model1, model2, ... modeln}
 
@@ -67,6 +67,10 @@ def read_wl_station_data(data_store, station_dict=default_params.station_dict,
         df = pd.concat(df_list)
     else:
         raise IOError(f"{data_store}: Does not exist or unknown data store type")
+
+    # filter only lead hour less than the maximum specified
+    if max_lead_hour is not None:
+        df = df[df[VALIDH_COL_NAME] <= max_lead_hour]
 
     return df
 

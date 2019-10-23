@@ -150,6 +150,8 @@ def qqplot(label_to_dataframe: dict,
 
         station_id_to_label_to_data[station_id] = {}
 
+        station_data_len = 0
+
         for label, df in label_to_dataframe.items():
 
             if station_id not in ["all", "All"]:
@@ -159,7 +161,12 @@ def qqplot(label_to_dataframe: dict,
 
             # print(len(select_data), station_id, label)
 
+            station_data_len += len(select_data)
             station_id_to_label_to_data[station_id].update({label: select_data})
+
+        # if there is no data for the station remove it
+        if station_data_len == 0:
+            del station_id_to_label_to_data[station_id]
 
     n_subplots = len(station_id_to_label_to_data)
     n_subplot_rows = n_subplots // n_subplot_cols

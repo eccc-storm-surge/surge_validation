@@ -5,7 +5,7 @@ from multiprocessing import Process
 from pathlib import Path
 from datetime import datetime
 
-from detiding_validation.experiments.FC70H17V2 import compare_rdsps_forecast
+from detiding_validation.experiments.FC70H17V2 import compare_forecast
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
 
     img_dir = Path(f"data/plots/{exp_label}_{datetime.utcnow():%Y%m%d%H%M}")
 
-    compare_rdsps_forecast(img_dir=img_dir, exp_id_to_path=exp_id_store, b2b_nhours=24, exp_id_list=exp_id_list)
+    compare_forecast(img_dir=img_dir, exp_id_to_path=exp_id_store, b2b_nhours=24, exp_id_list=exp_id_list)
 
 
 def main_36h():
@@ -51,7 +51,7 @@ def main_36h():
 
     img_dir = Path(f"data/plots/{exp_label}_dev_36h")
 
-    compare_rdsps_forecast(img_dir=img_dir, exp_id_to_path=exp_id_store, b2b_nhours=36, exp_id_list=exp_id_list)
+    compare_forecast(img_dir=img_dir, exp_id_to_path=exp_id_store, b2b_nhours=36, exp_id_list=exp_id_list)
 
 
 def main_36h_dc101():
@@ -79,8 +79,8 @@ def main_36h_dc101():
     img_dir = Path(f"data/plots/{exp_label}_dev_36h_dc101")
     img_dir.mkdir(exist_ok=True, parents=True)
 
-    compare_rdsps_forecast(img_dir=img_dir, exp_id_list=exp_id_list, exp_id_to_path=exp_id_store,
-                           b2b_nhours=36, calculate_scores=True)
+    compare_forecast(img_dir=img_dir, exp_id_list=exp_id_list, exp_id_to_path=exp_id_store,
+                     b2b_nhours=36, calculate_scores=True)
 
 
 if __name__ == '__main__':

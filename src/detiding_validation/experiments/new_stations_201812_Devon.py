@@ -3,7 +3,7 @@ from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 
-from detiding_validation.experiments.FC70H17V2 import compare_rdsps_forecast
+from detiding_validation.experiments.FC70H17V2 import compare_forecast
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -38,11 +38,11 @@ def main():
     img_dir = Path(f"data/plots/{exp_label}")
     img_dir.mkdir(exist_ok=True, parents=True)
 
-    compare_rdsps_forecast(img_dir=img_dir,
-                           exp_id_list=exp_id_list,
-                           exp_id_to_path=exp_id_store,
-                           b2b_nhours=24,
-                           calculate_scores=True, station_dict=station_dict)
+    compare_forecast(img_dir=img_dir,
+                     exp_id_list=exp_id_list,
+                     exp_id_to_path=exp_id_store,
+                     b2b_nhours=24,
+                     calculate_scores=True, station_dict=station_dict)
 
 
 if __name__ == '__main__':
