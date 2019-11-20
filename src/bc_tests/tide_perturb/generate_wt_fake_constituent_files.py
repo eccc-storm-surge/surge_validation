@@ -98,16 +98,24 @@ def gen_perturbations_nwatl():
     perutrbations of nwatl webtide dataset
     """
     stm_dir = Path("/home/olh001/C_CPP/WebTide_batch/data/nwatl")
-    out_dir = Path("data/wt_perturbations_nwatl_1.0.3_O1")
+    out_dir = Path("data/wt_perturbations_nwatl_1.0.3_K1N2S2")
 
     fake_name_to_base_name = {
         # "M2": "M2",
-        "O1": "O1"
+        # "O1": "O1",
+        "K1": "K1",
+        "N2": "N2",
+        "S2": "S2"
+
+
     }
 
     max_perturbation_fraction = {
         # "M2": {"amp": 0.1, "phase": 0.1},
-        "O1": {"amp": 0.1, "phase": 0.1}
+        # "O1": {"amp": 0.1, "phase": 0.1}
+        "K1": {"amp": 0.2, "phase": 0.1},
+        "N2": {"amp": 0.1, "phase": 0.1},
+        "S2": {"amp": 0.1, "phase": 0.1},
     }
 
     # make sure that member 0 is not perturbed

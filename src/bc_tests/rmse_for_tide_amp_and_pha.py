@@ -110,9 +110,10 @@ def main():
     data_query2["nomvar"] = "SSHT"
     data_query2["member_ids"] = ("",)
 
-    data_query1["member_ids"] = ("000", )
+    data_query1["member_ids"] = ("000",)
 
     pprint(calc_max_perturbation(d1, d2, data_query1=data_query1, data_query2=data_query2, dt_hours=1.))
+
 
 
 if __name__ == '__main__':

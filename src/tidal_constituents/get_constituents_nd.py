@@ -15,11 +15,11 @@ logger.setLevel(logging.DEBUG)
 
 
 def ttide_fit(args):
-    x1d, dt_hours, lat, errcalc, constitnames = args
+    x1d, dt_hours, lat, errcalc, constitnames, stime = args
     # logger.debug(f"{x1d.shape, lat, dt_hours}")
     # synth is -1 for performance, since xout is not used anyway here.
     con = tt.t_tide(x1d, dt=dt_hours, synth=-1, ray=0.5, out_style=None,
-                    errcalc=errcalc, constitnames=constitnames)
+                    errcalc=errcalc, constitnames=constitnames, stime=stime)
 
     con["xin"] = None
     con["xout"] = None
@@ -28,7 +28,7 @@ def ttide_fit(args):
 
 
 @get_cache(token="get_constituents")
-def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot", constitnames=None):
+def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot", constitnames=None, stime=None):
     """
     The first dimension is expected to be time (nans are OK)
     :param errcalc: type of error calculation in ttide (for now ercalc should be only cboot to get correct values for
@@ -69,15 +69,17 @@ def get_constituents(data, lat=None, dt_hours=1, nprocs=10, errcalc="cboot", con
     in_params = zip([in_data[i, :] for i in range(in_data.shape[0])],
                     itt.repeat(dt_hours, in_data.shape[0]), lat,
                     itt.repeat(errcalc, in_data.shape[0]),
-                    itt.repeat(constitnames, in_data.shape[0]))
+                    itt.repeat(constitnames, in_data.shape[0]), itt.repeat(stime, in_data.shape[0]))
 
     logger.debug(f"Spawning {nprocs} processes")
 
     if nprocs > 1:
         pool = Pool(processes=nprocs)
         con_list = pool.map(ttide_fit, in_params)
+        pool.close()
     else:
         con_list = [ttide_fit(par) for par in in_params]
+
 
     con_names = con_list[0]["nameu"]
 
