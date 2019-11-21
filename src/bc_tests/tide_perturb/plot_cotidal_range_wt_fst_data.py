@@ -79,7 +79,7 @@ def plot_amp_phase_ens_rmsd(lons, lats, constituents, img_dir: Path, sel_constit
     nrows = 1
     gs = GridSpec(nrows, ncols, hspace=0.0, wspace=0.1)
 
-    fig = plt.figure(figsize=(10, 4))
+
 
     par_to_clevs = {
         "amp": np.arange(0, 0.21, 0.01),
@@ -91,6 +91,7 @@ def plot_amp_phase_ens_rmsd(lons, lats, constituents, img_dir: Path, sel_constit
 
     for cn in sel_constituent_names:
         img_file = img_dir / f"amp_pha_rmsd_{cn}.png"
+        fig = plt.figure(figsize=(10, 4))
 
         for i, par in enumerate(["amp", "phase"]):
             show_cb = True
@@ -124,6 +125,7 @@ def plot_amp_phase_ens_rmsd(lons, lats, constituents, img_dir: Path, sel_constit
                                           plot_phase=False)
 
         fig.savefig(img_file, bbox_inches="tight", dpi=300)
+        plt.close(fig)
 
 
 def plot_cotidal_range(lons, lats, constituents: dict, img_dir: Path = Path("data/plots"), sel_constituent_names=("M2",)):
@@ -148,9 +150,9 @@ def plot_cotidal_range(lons, lats, constituents: dict, img_dir: Path = Path("dat
         (83, 39)
     ]
 
-    fig = plt.figure(figsize=(16, 16))
-
     for cn in sel_constituent_names:
+        fig = plt.figure(figsize=(16, 16))
+
         img_file = img_dir / f"cotidal_range_{cn}.png"
 
         control_amp = None
@@ -185,6 +187,7 @@ def plot_cotidal_range(lons, lats, constituents: dict, img_dir: Path = Path("dat
                 logger.debug(f"phase={constit_fields[cn]['phase'][p[0], p[1]]}")
 
         fig.savefig(img_file, bbox_inches="tight", dpi=400)
+        plt.close(fig)
 
 
 def test():
@@ -288,7 +291,7 @@ def plot_M2O1K1S2N2_perturbations():
 
     # do the plotting
     plot_cotidal_range(
-        lons, lats, constituents, img_dir=img_dir,
+        lons, lats, constituents, img_dir=img_dir, sel_constituent_names=constit_names
     )
 
     plot_amp_phase_ens_rmsd(lons, lats, constituents, img_dir=img_dir, sel_constituent_names=constit_names)
