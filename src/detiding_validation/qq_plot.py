@@ -44,7 +44,7 @@ def create_plot(station_id, label_to_color: dict, label_to_data: dict,
         fig = plt.figure(figsize=(8, 6))
         ax = fig.gca()
 
-    lead_t_text = f", [{lead_h_min}h, {lead_h_max}h]"
+    lead_t_text = f",\n [{lead_h_min}h, {lead_h_max}h]"
 
     if station_id == "all":
         title = f"All stations{lead_t_text}"

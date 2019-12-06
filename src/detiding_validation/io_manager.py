@@ -52,6 +52,10 @@ def read_wl_station_data(data_store, station_dict=default_params.station_dict,
 
         df.columns = col_names
 
+        # select only data for selected station ids
+        select_ids = list(station_dict)
+        df = df[df["station_id"].isin(select_ids)]
+
     elif data_store_p.is_dir():
         for p in data_store_p.iterdir():
             if not p.name.endswith(fname_suffix):

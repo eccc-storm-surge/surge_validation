@@ -83,7 +83,7 @@ def compare_forecast(station_dict=default_params.station_dict,
                               max_lead_hour=score_plots_params.get("max_lead_hour", None),
                               custom_rc_params=plot_params, n_subplot_cols=n_subplot_cols,
                               qq_lead_hour_range=qq_lead_hour_range, show_avg_diff=len(np.unique(labels)) > 1,
-                              member_id=member_id)
+                              member_id=member_id, select_stations=list(station_dict))
 
     data_paths = dict(zip(labels, [swl_path_old, swl_path_new]))
     data_colors = dict(zip(labels, ["b", "r"]))

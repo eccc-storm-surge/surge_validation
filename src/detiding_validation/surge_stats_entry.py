@@ -182,7 +182,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         if select_stations is None:
             nsubplots = 1 + len(current_station_ids)
         else:
-            nsubplots = len([cid for cid in current_station_ids if cid in select_stations])
+            nsubplots = 1 + len([cid for cid in current_station_ids if cid in select_stations])
 
         nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
 
@@ -215,12 +215,12 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         i = 0
         for _i, st_id in enumerate(sorted(current_station_ids)):
 
-            st_name = station_dict[st_id]
-
             # plot only selected stations
             if select_stations is not None:
                 if st_id not in select_stations:
                     continue
+
+            st_name = station_dict[st_id]
 
             row, col = plot_index_to_row_col(i, n_subplot_cols)
             ax = fig.add_subplot(gs[row, col], label=f"{row}_{col}_{st_id}")
@@ -274,6 +274,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         # save for overall stats into a separate file
         fig = plt.figure(figsize=(5, 5))
         ax = fig.gca()
+
         plot_scores(ax, old_series, new_series, col_name=col_names[member_col_index], shared_ax=None,
                     title="All stations", labels=labels, show_avg_diff=show_avg_diff)
 

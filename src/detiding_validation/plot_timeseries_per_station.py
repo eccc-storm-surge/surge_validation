@@ -213,6 +213,10 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
     # detided data
     st_sel_by_station = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id]
 
+    if len(st_sel_by_station) == 0:
+        logger.info(f"No data for {st_id}, skipping")
+        return
+
     # calculate date of origin to identify different forecasts
     do_series = st_sel_by_station[io_manager.TIME_COL_NAME] - st_sel_by_station[io_manager.VALIDH_COL_NAME].map(
         lambda vh: timedelta(hours=vh))
@@ -236,10 +240,27 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
 
             assert len(st_sel_mod) > 0, f"No model data data for {st_id}"
 
+            mod_cols = [c for c in st_sel_mod if c.startswith("mod")]
+
             st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-            st_sel_mod.asfreq("60T").plot(y=["mod" + member_id, ],
-                                          ax=axes[0], color=[model_color, ], legend=False, grid=True,
-                                          linewidth=linewidth)
+
+            if len(mod_cols) > 1:
+                # ensemble
+                mod_members_to_plot = st_sel_mod[mod_cols]
+                median = mod_members_to_plot.median(axis=1).asfreq("60T")
+                qmax = mod_members_to_plot.quantile(0.9, axis=1).asfreq("60T")
+                qmin = mod_members_to_plot.quantile(0.1, axis=1).asfreq("60T")
+
+                median.plot(ax=axes[0], color=model_color, legend=False, linewidth=linewidth)
+                axes[0].fill_between(median.index, qmin, qmax, facecolor=model_color, alpha=0.2)
+                qmin.plot(ax=axes[0], color=model_color, legend=False, linewidth=linewidth, style="--")
+                qmax.plot(ax=axes[0], color=model_color, legend=False, linewidth=linewidth, style="--")
+
+            else:
+                # deterministic
+                st_sel_mod.asfreq("60T").plot(y=["mod" + member_id, ],
+                                              ax=axes[0], color=[model_color, ], legend=False, grid=True,
+                                              linewidth=linewidth)
 
         st_sel = st_sel.sort_values(io_manager.TIME_COL_NAME)
         st_sel = st_sel.set_index(io_manager.TIME_COL_NAME)
@@ -248,15 +269,16 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
             logger.warning(f"No obs data for {st_id} and {do}, skipping it.")
             continue
 
-        st_sel.plot(y=["obs"], ax=axes[0], color=["k"], legend=False, linewidth=linewidth * 2)
+        st_sel.plot(y=["obs"], ax=axes[0], color=["k"], legend=False, linewidth=linewidth * 2.5, zorder=10)
 
         axes[0].set_title(f"forecast start: {do}")
         axes[0].set_xlim(st_time, en_time)
-        axes[0].legend(title=station_dict[st_id], handles=
-        [Line2D([0], [0], color="k", label=r"$\eta_{obs} - \eta_{T}$", linewidth=linewidth * 2), ] +
-        [Line2D([0], [0], color=c, label=r"$\eta_{S}$, " + f"{model_label}", linewidth=linewidth) for c, model_label in
-         zip(model_colors, model_label_list)]
-                       )
+
+        legend_handles = [Line2D([0], [0], color="k", label=r"$\eta_{obs} - \eta_{T}$", linewidth=linewidth * 2), ] + \
+                         [Line2D([0], [0], color=c, label=r"$\eta_{S}$, " + f"{model_label}", linewidth=linewidth) for c, model_label in
+                          zip(model_colors, model_label_list)]
+
+        axes[0].legend(title=station_dict[st_id], handles=legend_handles)
         axes[0].grid(which="minor", linestyle="dashed", linewidth=0.3)
         if ylim is not None:
             axes[0].set_ylim(*ylim)
