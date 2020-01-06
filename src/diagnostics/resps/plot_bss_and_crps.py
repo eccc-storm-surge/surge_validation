@@ -12,6 +12,7 @@ from collections import OrderedDict
 import pandas as pd
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 
 from detiding_validation.config.default_params import station_dict
 import re
@@ -24,6 +25,12 @@ BSS_MARK = "bsss"
 CRPS_MARK = "scores"
 CRPS_INDEX = 1
 BSS_INDEX = 2
+
+
+STAT_TO_YLIM = {
+    BSS_MARK: (0.4, 0.8),
+    CRPS_MARK: (0, 0.2)
+}
 
 STID_PATTERN = re.compile(r"\d+.txt$")
 
@@ -75,11 +82,11 @@ def read_bss_files(data_paths: dict) -> dict:
     :param data_paths:
     :return: {label: {stid: dataframe}}
     """
-    return read_files(data_paths, usecols=(0, 1, 2))
+    return read_files(data_paths, usecols=(0, 1, 2, 3, 4))
 
 
 def read_crps_files(data_paths: dict) -> dict:
-    return read_files(data_paths, usecols=(0, 1, -1), contains=CRPS_MARK)
+    return read_files(data_paths, usecols=(0, 1, 2, 3, -1), contains=CRPS_MARK)
 
 
 def plot_panel(ax, data, out_dir=None):
@@ -94,7 +101,8 @@ def plot_panel(ax, data, out_dir=None):
 
 def plot_crps_bss(data: dict, data_colors: dict,
                   out_dir: Path,
-                  stats="BSS", ycol=BSS_INDEX, cur_station_dict=None):
+                  stats="BSS", ycol=BSS_INDEX, cur_station_dict=None, lead_hour_max=240,
+                  ylims=(0, 1)):
     ncols = 4
 
     logger.debug(f"data = {data}")
@@ -111,6 +119,8 @@ def plot_crps_bss(data: dict, data_colors: dict,
     fig = plt.figure(figsize=(20, 20))
     gs = GridSpec(nrows=nrows, ncols=ncols)
 
+    stats_clean = stats.replace(" ", "")
+
     # fig.suptitle(stats)
     for i, st_id in enumerate(station_ids):
         r = i // ncols
@@ -121,9 +131,21 @@ def plot_crps_bss(data: dict, data_colors: dict,
 
         for label, stid_to_vals in data.items():
             yvals = stid_to_vals[st_id].iloc[:, ycol]
-            xvals = stid_to_vals[st_id].iloc[:, 0].map(lambda t: int(t[:-1]) // 24 + 1)
 
-            ax.plot(xvals, yvals, label=label, c=data_colors[label])
+            yvals_min = stid_to_vals[st_id].iloc[:, ycol + 1]
+            yvals_max = stid_to_vals[st_id].iloc[:, ycol + 2]
+
+            hours = stid_to_vals[st_id].iloc[:, 0].map(lambda t: int(t[:-1]))
+            sel_hours = hours <= lead_hour_max
+
+            xvals =  hours // 24 + 1
+
+            ax.plot(xvals[sel_hours], yvals[sel_hours], label=label, c=data_colors[label], zorder=100)
+            ax.fill_between(xvals[sel_hours], yvals_min[sel_hours], yvals_max[sel_hours], color=data_colors[label],
+                            alpha=0.3)
+
+            ax.xaxis.set_major_locator(MultipleLocator())
+            # ax.set_ylim(ylims)
             ax.set_xlabel("Lead, days")
 
         if i == 0:
@@ -134,7 +156,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
             ax.legend()
 
     fig.tight_layout()
-    fig.savefig(out_dir / f"{stats}_subplots.png", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_subplots.png", bbox_inches="tight")
 
 
     # plot all stations separately
@@ -145,15 +167,26 @@ def plot_crps_bss(data: dict, data_colors: dict,
     ax.set_title(cur_station_dict[st_id])
     for label, stid_to_vals in data.items():
         yvals = stid_to_vals[st_id].iloc[:, ycol]
-        xvals = stid_to_vals[st_id].iloc[:, 0].map(lambda t: int(t[:-1]) // 24 + 1)
 
-        ax.plot(xvals, yvals, label=label, c=data_colors[label], lw=2)
+        hours = stid_to_vals[st_id].iloc[:, 0].map(lambda t: int(t[:-1]))
+        xvals = hours // 24 + 1
+
+        sel_hours = hours <= lead_hour_max
+
+        yvals_min = stid_to_vals[st_id].iloc[:, ycol + 1]
+        yvals_max = stid_to_vals[st_id].iloc[:, ycol + 2]
+
+        ax.plot(xvals[sel_hours], yvals[sel_hours], label=label, c=data_colors[label], lw=2, zorder=100)
+        ax.fill_between(xvals[sel_hours], yvals_min[sel_hours], yvals_max[sel_hours], color=data_colors[label],
+                        alpha=0.3)
+        ax.xaxis.set_major_locator(MultipleLocator())
+        ax.set_ylim(ylims)
 
     ax.set_xlabel("Lead, days")
     ax.set_ylabel(stats)
 
     ax.legend()
-    fig.savefig(out_dir / f"{stats}_all_stations.png", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_all_stations.png", bbox_inches="tight")
 
 
 
@@ -184,6 +217,13 @@ def main():
     parser.add_argument("--out_dir", nargs="?", default="./",
                         help="Path to the folder, where to store plots",
                         required=False)
+
+
+    parser.add_argument("--lead_hour_max", nargs="?", default=240,
+                        help="Path to the folder, where to store plots",
+                        required=False, type=int)
+
+
 
     args = parser.parse_args()
     # logger.debug(args)
@@ -223,13 +263,19 @@ def main():
 
                 bss_thresh = bss_vals.iloc[0, 1]
 
-                bss_avg.iloc[:, BSS_INDEX] = bss_vals.iloc[:, BSS_INDEX] * bss_vals.iloc[:, -1]
-                crps_avg.iloc[:, CRPS_INDEX] = crps_vals.iloc[:, CRPS_INDEX] * crps_vals.iloc[:, -1]
+                # calculate mean limits as well, if available
+                for di in [0, 1, 2]:
+                    bss_avg.iloc[:, BSS_INDEX + di] = bss_vals.iloc[:, BSS_INDEX + di] * crps_vals.iloc[:, -1]
+                    crps_avg.iloc[:, CRPS_INDEX + di] = crps_vals.iloc[:, CRPS_INDEX + di] * crps_vals.iloc[:, -1]
 
                 total_samples = crps_vals.iloc[:, -1]
             else:
-                bss_avg.iloc[:, BSS_INDEX] += bss_vals.iloc[:, BSS_INDEX] * bss_vals.iloc[:, -1]
-                crps_avg.iloc[:, CRPS_INDEX] += crps_vals.iloc[:, CRPS_INDEX] * crps_vals.iloc[:, -1]
+
+                # calculate mean limits as well, if available
+                for di in [0, 1, 2]:
+                    bss_avg.iloc[:, BSS_INDEX + di] += bss_vals.iloc[:, BSS_INDEX + di] * crps_vals.iloc[:, -1]
+                    crps_avg.iloc[:, CRPS_INDEX + di] += crps_vals.iloc[:, CRPS_INDEX + di] * crps_vals.iloc[:, -1]
+
                 total_samples += crps_vals.iloc[:, -1]
 
                 # update the total number of samples
@@ -242,20 +288,26 @@ def main():
         stid_to_bss_vals["all"] = bss_avg
 
         # means for all stations
-        stid_to_crps_vals["all"].iloc[:, CRPS_INDEX] = crps_avg.iloc[:, CRPS_INDEX] / total_samples
-        stid_to_bss_vals["all"].iloc[:, BSS_INDEX] = bss_avg.iloc[:, BSS_INDEX] / total_samples
+        # calculate mean limits as well, if available
+        for di in [0, 1, 2]:
+            stid_to_crps_vals["all"].iloc[:, CRPS_INDEX + di] = crps_avg.iloc[:, CRPS_INDEX + di] / total_samples
+            stid_to_bss_vals["all"].iloc[:, BSS_INDEX + di] = bss_avg.iloc[:, BSS_INDEX + di] / total_samples
+
+
+    # create the directory for output figures if it does not exist
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(exist_ok=True, parents=True)
 
     # do the plotting
-    plot_crps_bss(bss_data, data_colors, out_dir=Path(args.out_dir),
+    plot_crps_bss(bss_data, data_colors, out_dir=out_dir,
                   stats=f"BSS ({bss_thresh})", ycol=BSS_INDEX,
-                  cur_station_dict=cur_station_dict)
+                  cur_station_dict=cur_station_dict, lead_hour_max=args.lead_hour_max,
+                  ylims=STAT_TO_YLIM[BSS_MARK])
 
-    plot_crps_bss(crps_data, data_colors, out_dir=Path(args.out_dir),
+    plot_crps_bss(crps_data, data_colors, out_dir=out_dir,
                   stats=f"CRPS", ycol=CRPS_INDEX,
-                  cur_station_dict=cur_station_dict)
-
-
-
+                  cur_station_dict=cur_station_dict, lead_hour_max=args.lead_hour_max,
+                  ylims=STAT_TO_YLIM[CRPS_MARK])
 
 
 if __name__ == '__main__':

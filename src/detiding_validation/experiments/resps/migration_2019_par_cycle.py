@@ -74,6 +74,13 @@ def main():
     st_date = datetime(2019, 11, 11, 0)
     en_date = datetime(2019, 12, 1, 0)
 
+    default_params.vname_to_limits = {
+        "stde": (0, 0.3),
+        "gamma": (0, 1.15),
+        "stde_obs": (0, 0.3),
+        "gamma_varobsallvhour": (0, 1.15)
+    }
+
 
     reject_stations = [
         "1970", "2330", "2780", "2985", "8443970", "8418150", "990"

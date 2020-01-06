@@ -56,12 +56,6 @@ def compare_forecast(station_dict=default_params.station_dict,
             "forecast_hour_tick_multiplier": 24
         }
 
-    default_params.vname_to_limits = {
-        "stde": (0, 0.3),
-        "gamma": (0, 3),
-        "stde_obs": (0, 0.3),
-        "gamma_varobsallvhour": (0, 3)
-    }
 
     if plot_params is None:
         plot_params = {

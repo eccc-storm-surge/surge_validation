@@ -28,6 +28,15 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
         "160-ops", "170-par"
     ]
 
+    default_params.vname_to_limits = {
+        "stde": (0, 0.16),
+        "gamma": (0, 1.15),
+        "stde_obs": (0, 0.3),
+        "gamma_varobsallvhour": (0, 1.15)
+    }
+
+
+
     b2b_nhours = 36
 
     score_plots_params = {

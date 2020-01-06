@@ -65,7 +65,7 @@ def style_axes(ax, locator_base=24):
 
 
 def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
-                title="", labels=None, show_avg_diff=True):
+                title="", labels=None, show_avg_diff=True, ylimits=None):
     """
     Plot scores as function of forcast hour
     :param show_avg_diff: True/False whether show or not the average difference between the models
@@ -87,14 +87,14 @@ def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
                     ax=ax,
                     title=title, sharex=shared_ax,
                     sharey=None,
-                    rot=45, label=labels["old"])
+                    rot=45, label=labels["old"], ylim=ylimits)
 
     if labels["new"] != labels["old"]:
 
         new_series.plot(y=col_name, legend=False, color=default_params.COLOR_NEW, lw=0.5,
                         ax=ax,
                         sharex=shared_ax, sharey=None,
-                        rot=45, label=labels["new"])
+                        rot=45, label=labels["new"], ylim=ylimits)
 
         # display averaged difference for all forecast hours if requested
         if show_avg_diff:
@@ -255,7 +255,8 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         new_series = swl_stats_new[1]
 
         plot_scores(ax, old_series, new_series, col_name=col_names[member_col_index], shared_ax=shared_ax,
-                    title="All stations", labels=labels, show_avg_diff=show_avg_diff)
+                    title="All stations", labels=labels, show_avg_diff=show_avg_diff,
+                    ylimits=default_params.vname_to_limits[suffix[1:]])
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
         ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4), borderaxespad=0.)
@@ -276,7 +277,8 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         ax = fig.gca()
 
         plot_scores(ax, old_series, new_series, col_name=col_names[member_col_index], shared_ax=None,
-                    title="All stations", labels=labels, show_avg_diff=show_avg_diff)
+                    title="All stations", labels=labels, show_avg_diff=show_avg_diff,
+                    ylimits=default_params.vname_to_limits[suffix[1:]])
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
         ax.legend(loc="upper left")
