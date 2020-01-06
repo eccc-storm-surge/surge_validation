@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DFO_TIDES_DB = "/home/smco500/.suites/rdsps/forecast/hub/eccc-ppp1/archive_db/archive_tid.sqlite"
+DEFAULT_DFO_TIDES_DB = "/home/smco500/.suites/rdsps/forecast/hub/eccc-ppp4/archive_db/archive_tid.sqlite"
 
 
 class DfoTides(object):
@@ -35,7 +35,7 @@ class DfoTides(object):
 
 
 def test():
-    dfo_tides = DfoTides(db_path="/home/smco500/.suites/rdsps/forecast/hub/eccc-ppp1/archive_db/archive_tid.sqlite")
+    dfo_tides = DfoTides(db_path="/home/smco500/.suites/rdsps/forecast/hub/eccc-ppp4/archive_db/archive_tid.sqlite")
 
     stn_id = "215"
     data = dfo_tides.get_data_for_stn(stn_id=stn_id)
