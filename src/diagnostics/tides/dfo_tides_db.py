@@ -18,6 +18,7 @@ class DfoTides(object):
     """
     TIDE_TABLE_NAME = "tide"
     DATETIME_COL_NAME = "validTime"
+    STNID_COL_NAME = "StnId"
     DATETIME_FORMAT = "%Y-%m-%d %H:%M"
 
     def __init__(self, db_path=DEFAULT_DFO_TIDES_DB):
@@ -35,7 +36,7 @@ class DfoTides(object):
         :param end_time: inclusive maximum time, use None (default) to disable upper limit
         :return: pandas dataframe with levels and dates
         """
-        query = f"select * from {self.TIDE_TABLE_NAME} where StnId = '{int(stn_id):04d}'"
+        query = f"select * from {self.TIDE_TABLE_NAME} where {self.STNID_COL_NAME} = '{int(stn_id):04d}'"
         if start_time is not None:
             query += f"and {self.DATETIME_COL_NAME} >= '{start_time.strftime(self.DATETIME_FORMAT)}'"
 
@@ -44,7 +45,7 @@ class DfoTides(object):
 
         df = pd.read_sql_query(query,
                                self.conn,
-                               parse_dates={"validTime": self.DATETIME_FORMAT})
+                               parse_dates={self.DATETIME_COL_NAME: self.DATETIME_FORMAT})
 
         df.set_index("validTime", inplace=True)
         return df
