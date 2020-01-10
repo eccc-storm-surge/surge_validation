@@ -282,7 +282,6 @@ def main():
                 bss_avg.iloc[:, -1] = total_samples
                 crps_avg.iloc[:, -1] = total_samples
 
-
         # create a dummy station all
         stid_to_crps_vals["all"] = crps_avg
         stid_to_bss_vals["all"] = bss_avg
@@ -293,7 +292,6 @@ def main():
             stid_to_crps_vals["all"].iloc[:, CRPS_INDEX + di] = crps_avg.iloc[:, CRPS_INDEX + di] / total_samples
             stid_to_bss_vals["all"].iloc[:, BSS_INDEX + di] = bss_avg.iloc[:, BSS_INDEX + di] / total_samples
 
-
     # create the directory for output figures if it does not exist
     out_dir = Path(args.out_dir)
     out_dir.mkdir(exist_ok=True, parents=True)
@@ -301,12 +299,14 @@ def main():
     # do the plotting
     plot_crps_bss(bss_data, data_colors, out_dir=out_dir,
                   stats=f"BSS ({bss_thresh})", ycol=BSS_INDEX,
-                  cur_station_dict=cur_station_dict, lead_hour_max=args.lead_hour_max,
+                  cur_station_dict=cur_station_dict,
+                  lead_hour_max=args.lead_hour_max,
                   ylims=STAT_TO_YLIM[BSS_MARK])
 
     plot_crps_bss(crps_data, data_colors, out_dir=out_dir,
                   stats=f"CRPS", ycol=CRPS_INDEX,
-                  cur_station_dict=cur_station_dict, lead_hour_max=args.lead_hour_max,
+                  cur_station_dict=cur_station_dict,
+                  lead_hour_max=args.lead_hour_max,
                   ylims=STAT_TO_YLIM[CRPS_MARK])
 
 
