@@ -91,7 +91,20 @@ def tides_prediction_accurate(constituents: dict,
                               t_end: datetime,
                               dt: timedelta = timedelta(hours=1),
                               ncpu=1):
+    """
+    Calculate tide predictions from t_beg to t_end (inclusive) with step dt and returns the results in the form of
+    pandas dataframe, which has a column 'tide' containing computed tides.
 
+    The tide calculations can be parallelized in time since the next elevation value
+    can be computed without waiting for the previous elevation values.
+
+    :param constituents: constituent information
+    :param t_beg: start time of the output tides
+    :param t_end: end time of the output tides
+    :param dt: output time step of the output tides
+    :param ncpu: number of cpus to use for tide calculations
+    :return: pandas dataframe containing tidal elevations in its "tide" column
+    """
     t_range = pd.date_range(t_beg, t_end, freq=dt)
     # res = [tides_prediction(constituents, t - dt_internal / 2., t + dt_internal / 2., dt=dt, t_range=t_range)[0]
     #        for t in t_range]
