@@ -3,8 +3,6 @@ import re
 import numpy as np
 import logging
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 token_to_sign = {
@@ -120,5 +118,6 @@ def test():
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
     test()
