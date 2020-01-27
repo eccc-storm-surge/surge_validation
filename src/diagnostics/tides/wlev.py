@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-logger.setLevel(logging.DEBUG)
+
 
 token_to_sign = {
     "N": 1, "S": -1, "E": 1, "W": -1
@@ -120,4 +120,5 @@ def test():
 
 
 if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
     test()
