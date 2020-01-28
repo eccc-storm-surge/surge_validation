@@ -64,4 +64,5 @@ def test():
 
 
 if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
     test()
