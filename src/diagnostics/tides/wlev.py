@@ -51,6 +51,8 @@ def read_constituent_info(wlev_path: Path):
     2. header lines are terminated with ||
     """
 
+    logger = logging.getLogger(__name__)
+
     res = {
         "names": [],
         "amp": [],
@@ -62,6 +64,7 @@ def read_constituent_info(wlev_path: Path):
         "station_id": "unknown",
         "station_name": "unknown"
     }
+
 
     id_pattern = re.compile(r"\d+")
     with wlev_path.open() as f:
