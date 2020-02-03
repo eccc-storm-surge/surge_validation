@@ -3,8 +3,6 @@ import re
 import numpy as np
 import logging
 
-logger = logging.getLogger(__name__)
-
 
 token_to_sign = {
     "N": 1, "S": -1, "E": 1, "W": -1
@@ -52,6 +50,8 @@ def read_constituent_info(wlev_path: Path):
     2. header lines are terminated with ||
     """
 
+    logger = logging.getLogger(__name__)
+
     res = {
         "names": [],
         "amp": [],
@@ -63,6 +63,7 @@ def read_constituent_info(wlev_path: Path):
         "station_id": "unknown",
         "station_name": "unknown"
     }
+
 
     id_pattern = re.compile(r"\d+")
     with wlev_path.open() as f:
@@ -119,5 +120,6 @@ def test():
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
     test()

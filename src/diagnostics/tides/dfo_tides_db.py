@@ -6,8 +6,6 @@ import sqlite3
 
 import logging
 
-logger = logging.getLogger(__name__)
-
 DEFAULT_DFO_TIDES_DB = "/home/smco500/.suites/rdsps/forecast/hub/eccc-ppp4/archive_db/archive_tid.sqlite"
 
 
@@ -64,5 +62,7 @@ def test():
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     test()
