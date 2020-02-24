@@ -1,10 +1,12 @@
 #  ========== FC70H16V2 vs op (RDSPS, forecast) ===============
 import logging
+from collections import OrderedDict
 from multiprocessing import Process
 from pathlib import Path
 from detiding_validation.config import default_params
 from datetime import datetime
 
+from detiding_validation.maps.b2b_scores_scatter import plot_score_maps
 from detiding_validation.plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
 from detiding_validation.surge_stats_entry import compare_2_simulations
 import numpy as np
@@ -22,8 +24,7 @@ def compare_forecast(station_dict=default_params.station_dict,
                      qq_lead_hour_range=range(1, 1, 5),
                      b2b_cutoff_hours=1000,
                      st_time=None, en_time=None, options=None,
-                     member_id=""
-                     ):
+                     member_id=""):
     """
 
     :param member_id:
@@ -39,13 +40,17 @@ def compare_forecast(station_dict=default_params.station_dict,
     :param img_dir:
     :param exp_id_to_path:
     :param exp_id_list:
-    :param b2b_nhours: if negative, don't do the back to back series
+    :param b2b_nhours: if negative, don't do the back to back series, if dict: b2b_nhours = {label: b2b_nhours}
     """
+
+    if isinstance(b2b_nhours, int):
+        b2b_nhours = {label: b2b_nhours for label in exp_id_list}
 
     if options is None:
         options = {
             "do_full_forecast_timeseries": True,
-            "calculate_scores": True
+            "calculate_scores": True,
+            "do_b2b_timeseries": True
         }
 
     if img_dir is None:
@@ -56,7 +61,6 @@ def compare_forecast(station_dict=default_params.station_dict,
             "forecast_hour_tick_multiplier": 24
         }
 
-
     if plot_params is None:
         plot_params = {
             "figure.figsize": (10, 14),
@@ -64,7 +68,7 @@ def compare_forecast(station_dict=default_params.station_dict,
         }
 
     labels = [
-        f"storm surge ({exp_id})" for exp_id in exp_id_list
+        f"{exp_id}" for exp_id in exp_id_list
     ]
 
     swl_path_old, swl_path_new = [exp_id_to_path[exp_id] for exp_id in exp_id_list]
@@ -79,26 +83,28 @@ def compare_forecast(station_dict=default_params.station_dict,
                               qq_lead_hour_range=qq_lead_hour_range, show_avg_diff=len(np.unique(labels)) > 1,
                               member_id=member_id, select_stations=list(station_dict))
 
-    data_paths = dict(zip(labels, [swl_path_old, swl_path_new]))
-    data_colors = dict(zip(labels, ["b", "r"]))
+    data_paths = OrderedDict(zip(labels, [swl_path_old, swl_path_new]))
+    data_colors = OrderedDict(zip(labels, ["b", "r"]))
 
     # plot time series
 
     # a) back to back
-    if b2b_nhours > 0:
+    if options.get("do_b2b_timeseries", True):
         if b2b_cutoff_hours is not None:
             b2b_cutoff_hours_token = f"_zoom_{b2b_cutoff_hours}h"
         else:
             b2b_cutoff_hours_token = ""
 
-        ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_nhours}{b2b_cutoff_hours_token}"
-        ts_plots_dir.mkdir(exist_ok=True)
-        compare_sims_timeseries_back2back(labels, data_paths, data_colors,
+        ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_cutoff_hours_token}"
+        ts_plots_dir.mkdir(exist_ok=True, parents=True)
+        station_scores = compare_sims_timeseries_back2back(labels, data_paths, data_colors,
                                           ts_plots_dir,
                                           station_dict=station_dict,
                                           st_time=st_time, en_time=en_time,
                                           run_freq_hours=b2b_nhours, linewidth=0.3,
                                           b2b_cutoff_hours=b2b_cutoff_hours, member_id=member_id)
+
+        plot_score_maps(station_scores, labels, data_paths, img_dir=img_dir)
 
     # b) full forecasts
     if options.get("do_full_forecast_timeseries", True):
@@ -106,7 +112,8 @@ def compare_forecast(station_dict=default_params.station_dict,
         compare_sims_timeseries_one_plot_per_fc(labels, data_paths, data_colors,
                                                 ts_plots_dir,
                                                 station_dict=station_dict,
-                                                st_time=st_time, en_time=en_time, linewidth=0.3, member_id=member_id)
+                                                st_time=st_time, en_time=en_time,
+                                                linewidth=0.3, member_id=member_id)
 
 
 def main():
@@ -187,4 +194,3 @@ if __name__ == '__main__':
     # main()
     # Process(target=main_36h).start()
     Process(target=main_36h_dc101).start()
-

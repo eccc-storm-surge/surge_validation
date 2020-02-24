@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import numpy as np
 
 station_dict = OrderedDict([
     ("8443970", "Boston, MA"),
@@ -61,3 +62,12 @@ vname_to_limits = {
 
 COLOR_OLD = "b"
 COLOR_NEW = "r"
+
+
+score_clevs = {
+    "gamma2": np.arange(0, 0.6, 0.05),
+    "sigma": np.arange(0, 0.2, 0.02),
+    "gamma2_diff": np.arange(-0.20, 0.21, 0.02),
+    "sigma_diff": np.arange(-0.06, 0.07, 0.02),
+
+}

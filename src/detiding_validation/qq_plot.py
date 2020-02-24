@@ -174,7 +174,7 @@ def qqplot(label_to_dataframe: dict,
     if n_subplot_cols * n_subplot_rows < n_subplots:
         n_subplot_rows += 1
 
-    gs = GridSpec(n_subplot_rows, n_subplot_cols, hspace=0.4, wspace=0.3)
+    gs = GridSpec(n_subplot_rows, n_subplot_cols, hspace=0.6, wspace=0.3)
 
     for subplot_index, station_id in enumerate(station_id_to_label_to_data):
 

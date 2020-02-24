@@ -187,7 +187,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
 
         fig = plt.figure(figsize=custom_rc_params.get("figure.figsize", (9, 12)))
-        gs = GridSpec(nrows, n_subplot_cols, top=0.90)
+        gs = GridSpec(nrows, n_subplot_cols, top=0.90, wspace=0.4)
         shared_ax = None
 
         logger.debug(current_station_ids)
@@ -255,8 +255,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         new_series = swl_stats_new[1]
 
         plot_scores(ax, old_series, new_series, col_name=col_names[member_col_index], shared_ax=shared_ax,
-                    title="All stations", labels=labels, show_avg_diff=show_avg_diff,
-                    ylimits=default_params.vname_to_limits[suffix[1:]])
+                    title="All stations", labels=labels, show_avg_diff=show_avg_diff)
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
         ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4), borderaxespad=0.)
@@ -270,6 +269,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
             img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.png"
         else:
             img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.png"
+
         fig.savefig(str(img_file), dpi=400, bbox_inches="tight")
 
         # save for overall stats into a separate file
@@ -292,7 +292,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         fig.savefig(img_file, dpi=400, bbox_inches="tight")
         plt.close(fig)
 
-    logging.info("Finish compare_2_simulations ...")
+    logging.info("Finished compare_2_simulations ...")
 
 
 def compare_rdsps_2018(station_dict=default_params.station_dict):

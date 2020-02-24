@@ -10,6 +10,13 @@ import pandas as pd
 TIME_COL_NAME = "time"
 VALIDH_COL_NAME = "valid_hour"
 STID_COL_NAME = "station_id"
+LAT_COL_NAME = "lat"
+LON_COL_NAME = "lon"
+
+# indices of the columns in the input file
+INFILE_STID_INDEX = 1
+INFILE_LAT_INDEX = 2
+INFILE_LON_INDEX = 3
 
 SPACE_SEPARATED_XDAT = 1
 MODEL_AND_OBS_ONE_FILE = 2
@@ -43,7 +50,7 @@ def read_wl_station_data(data_store, station_dict=default_params.station_dict,
                                      2: float, 3: float,
                                      4: lambda s: datetime.strptime(s, "%Y%m%d%H")})
 
-        col_names = [VALIDH_COL_NAME, "station_id", "lat", "lon", TIME_COL_NAME, "obs", ]
+        col_names = [VALIDH_COL_NAME, STID_COL_NAME, LAT_COL_NAME, LON_COL_NAME, TIME_COL_NAME, "obs", ]
 
         if len(df.columns) - len(col_names) > 1:
             col_names = col_names + [f"mod{i:03d}" for i in range(len(df.columns) - len(col_names))]
