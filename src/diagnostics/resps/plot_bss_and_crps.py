@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 from detiding_validation.config.default_params import station_dict
+import numpy as np
 import re
 
 logging.basicConfig(level=logging.DEBUG)
@@ -105,6 +106,8 @@ def plot_crps_bss(data: dict, data_colors: dict,
                   ylims=(0, 1)):
     ncols = 4
 
+    plt.rcParams["errorbar.capsize"] = 2
+
     logger.debug(f"data = {data}")
 
     station_ids = next(iter(data.items()))[1].keys()
@@ -141,8 +144,11 @@ def plot_crps_bss(data: dict, data_colors: dict,
             xvals =  hours // 24 + 1
 
             ax.plot(xvals[sel_hours], yvals[sel_hours], label=label, c=data_colors[label], zorder=100)
-            ax.fill_between(xvals[sel_hours], yvals_min[sel_hours], yvals_max[sel_hours], color=data_colors[label],
-                            alpha=0.3)
+
+            errors = [yvals[sel_hours] - yvals_min[sel_hours], yvals_max[sel_hours] - yvals[sel_hours]]
+            ax.errorbar(xvals[sel_hours], yvals[sel_hours], yerr=np.array(errors), color=data_colors[label], lw=0.5)
+            # ax.fill_between(xvals[sel_hours], yvals_min[sel_hours], yvals_max[sel_hours], color=data_colors[label],
+            #                 alpha=0.3)
 
             ax.xaxis.set_major_locator(MultipleLocator())
             # ax.set_ylim(ylims)
@@ -156,7 +162,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
             ax.legend()
 
     fig.tight_layout()
-    fig.savefig(out_dir / f"{stats_clean}_subplots.png", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_subplots.eps", bbox_inches="tight")
 
 
     # plot all stations separately
@@ -176,9 +182,13 @@ def plot_crps_bss(data: dict, data_colors: dict,
         yvals_min = stid_to_vals[st_id].iloc[:, ycol + 1]
         yvals_max = stid_to_vals[st_id].iloc[:, ycol + 2]
 
-        ax.plot(xvals[sel_hours], yvals[sel_hours], label=label, c=data_colors[label], lw=2, zorder=100)
-        ax.fill_between(xvals[sel_hours], yvals_min[sel_hours], yvals_max[sel_hours], color=data_colors[label],
-                        alpha=0.3)
+        ax.plot(xvals[sel_hours], yvals[sel_hours], label=label, c=data_colors[label], lw=1, zorder=100)
+        errors = [yvals[sel_hours] - yvals_min[sel_hours], yvals_max[sel_hours] - yvals[sel_hours]]
+        ax.errorbar(xvals[sel_hours], yvals[sel_hours], yerr=np.array(errors), color=data_colors[label], lw=0.5)
+
+
+        # ax.fill_between(xvals[sel_hours], yvals_min[sel_hours], yvals_max[sel_hours], color=data_colors[label],
+        #                 alpha=0.3)
         ax.xaxis.set_major_locator(MultipleLocator())
         ax.set_ylim(ylims)
 
@@ -186,8 +196,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
     ax.set_ylabel(stats)
 
     ax.legend()
-    fig.savefig(out_dir / f"{stats_clean}_all_stations.png", bbox_inches="tight")
-
+    fig.savefig(out_dir / f"{stats_clean}_all_stations.eps", bbox_inches="tight")
 
 
 def main():
@@ -197,7 +206,7 @@ def main():
     call as
         python plot_bss_and_crps.py --paths <path1> <path2> ... <pathn> \
                                     --labels <label1> <label2> ... <labeln> \
-                                  [ --out_dir ./ ]
+                                  [ --out_dir ./ ] [--bsslim min max] [--crpslim min max]
 
     """
 
@@ -218,10 +227,16 @@ def main():
                         help="Path to the folder, where to store plots",
                         required=False)
 
-
     parser.add_argument("--lead_hour_max", nargs="?", default=240,
                         help="Path to the folder, where to store plots",
                         required=False, type=int)
+
+    parser.add_argument("--bsslim", nargs=2,
+                        default=STAT_TO_YLIM[BSS_MARK],
+                        required=False, type=float, help="y axis limits on the plot (BSS)")
+
+    parser.add_argument("--crpslim", nargs=2, default=STAT_TO_YLIM[CRPS_MARK],
+                        required=False, type=float, help="y axis limits on the plot (CRPS)")
 
 
 
@@ -301,13 +316,13 @@ def main():
                   stats=f"BSS ({bss_thresh})", ycol=BSS_INDEX,
                   cur_station_dict=cur_station_dict,
                   lead_hour_max=args.lead_hour_max,
-                  ylims=STAT_TO_YLIM[BSS_MARK])
+                  ylims=args.bsslim)
 
     plot_crps_bss(crps_data, data_colors, out_dir=out_dir,
                   stats=f"CRPS", ycol=CRPS_INDEX,
                   cur_station_dict=cur_station_dict,
                   lead_hour_max=args.lead_hour_max,
-                  ylims=STAT_TO_YLIM[CRPS_MARK])
+                  ylims=args.crpslim)
 
 
 if __name__ == '__main__':
