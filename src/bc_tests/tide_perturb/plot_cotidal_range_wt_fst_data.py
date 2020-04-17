@@ -250,7 +250,8 @@ def plot_M2O1K1S2N2_perturbations():
     exp_label = "WT_perturb_" + "".join(constit_names)
     img_dir = Path(f"data/plots/cotidal_ranges_{exp_label}")
 
-    data_dir = Path("/home/olh001/.suites/resps_tides_perturb_nwatl_O1M2K1N2S2_invert_scaling/forecast/hub/eccc-ppp2/gridpt/tides")
+    # data_dir = Path("/home/olh001/.suites/resps_tides_perturb_nwatl_O1M2K1N2S2_invert_scaling/forecast/hub/eccc-ppp2/gridpt/tides")
+    data_dir = Path("/home/olh001/data/ppp4/research/mod_outputs/fst/resps_tides_perturb_nwatl_O1M2K1N2S2_invert_scaling/forecast/gridpt/tides")
 
     assert data_dir.is_dir()
 
@@ -262,7 +263,7 @@ def plot_M2O1K1S2N2_perturbations():
     img_dir = img_dir / f"{beg_time:%Y%m%d%H}_{end_time:%Y%m%d%H}"
     img_dir.mkdir(exist_ok=True, parents=True)
 
-    grid_file = Path("/home/olh001/.suites/resps/constants/griddefs/grid-atlantic_1_12.fst")
+    grid_file = Path("/home/olh001/.suites/resps/master/constants/griddefs/grid-atlantic_1_12.fst")
     lons, lats, mask = fst.get_coords_and_mask(grid_file, nomvar="MGB", use_maskrec=False)
 
     query = {

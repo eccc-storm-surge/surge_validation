@@ -25,9 +25,10 @@ def get_cache(cache_dir=None, token=""):
     """
     if cache_dir is None:
         # cache_dir = Path(os.environ["HOME"]) / "data" / os.environ["TRUE_HOST"]
-        cache_dir = Path(os.environ["HOME"]) / "data" / "eccc-ppp1" / "caches"
+        cache_dir = Path(os.environ["HOME"]) / "data" / "eccc-ppp4" / "caches"
         if not cache_dir.exists():
-            raise IOError(f"The cache directory {cache_dir} does not exist, please create appropriate links")
+            cache_dir.mkdir(exist_ok=True)
+            logger.warning(f"The cache directory {cache_dir} does not exist, trying to create it")
 
     cache_dir.mkdir(exist_ok=True, parents=True)
     if len(token) == 0:
