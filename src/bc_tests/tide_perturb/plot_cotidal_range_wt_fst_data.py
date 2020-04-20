@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from rpnpy.librmn import all as rmn
 
 from tidal_constituents.get_constituents_nd import get_constituents, reshape_constituents_to_mask
@@ -29,7 +30,8 @@ def get_projection():
     # return ccrs.PlateCarree(central_longitude=-60)
 
 
-def plot_cotidal_range_for_member(member_id, ax, data, amp_clevs=np.arange(0, 1.5, 0.05), show_cb=False,
+def plot_cotidal_range_for_member(member_id, ax, data, amp_clevs=np.arange(0, 1.5, 0.05),
+                                  show_cb=False, construct_cb=True,
                                   plot_phase=True, plot_perturbations=True):
     lons, lats = data["coords"]
     amp = data["amp"]
@@ -63,12 +65,19 @@ def plot_cotidal_range_for_member(member_id, ax, data, amp_clevs=np.arange(0, 1.
 
         ax.clabel(cs, cs.levels[::3], fmt="%d", fontsize=2)
 
-    cb = plt.colorbar(csf, ax=ax, shrink=0.98)
-    ax.coastlines(resolution='50m', linewidth=0.1)
 
-    # ax.set_title(m_id)
+    if construct_cb:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="3%", pad=0.1, axes_class=plt.Axes)
+        cb = ax.figure.colorbar(csf, cax=cax)
+        cb.ax.set_visible(show_cb)
+
+        # ax.set_title(m_id)
+
+    ax.coastlines(resolution='50m', linewidth=0.1)
     ax.annotate(member_id, (0.1, 0.7), xycoords="axes fraction")
-    cb.ax.set_visible(show_cb)
+
+    return csf
 
 
 def plot_amp_phase_ens_rmsd(lons, lats, constituents, img_dir: Path, sel_constituent_names=("M2",)):
@@ -128,7 +137,8 @@ def plot_amp_phase_ens_rmsd(lons, lats, constituents, img_dir: Path, sel_constit
         plt.close(fig)
 
 
-def plot_cotidal_range(lons, lats, constituents: dict, img_dir: Path = Path("data/plots"), sel_constituent_names=("M2",)):
+def plot_cotidal_range(lons, lats, constituents: dict, img_dir: Path = Path("data/plots"),
+                       sel_constituent_names=("M2",), img_type="png"):
     """
     :param lats:
     :param lons:
@@ -153,7 +163,7 @@ def plot_cotidal_range(lons, lats, constituents: dict, img_dir: Path = Path("dat
     for cn in sel_constituent_names:
         fig = plt.figure(figsize=(16, 16))
 
-        img_file = img_dir / f"cotidal_range_{cn}.png"
+        img_file = img_dir / f"cotidal_range_{cn}.{img_type}"
 
         control_amp = None
 
@@ -246,6 +256,9 @@ def plot_M2O1K1S2N2_perturbations():
     """
 
     constit_names = ["M2", "O1", "K1", "S2", "N2"]
+
+    # to speed things up, do M2-only
+    constit_names = ["M2", ]
 
     exp_label = "WT_perturb_" + "".join(constit_names)
     img_dir = Path(f"data/plots/cotidal_ranges_{exp_label}")
