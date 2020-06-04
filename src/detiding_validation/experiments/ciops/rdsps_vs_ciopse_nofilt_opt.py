@@ -9,7 +9,7 @@ from datetime import datetime
 
 from detiding_validation.experiments.FC70H17V2 import compare_forecast
 
-EXP_ID = "ciopse_vs_rdsps_filt_opt"
+EXP_ID = "ciopse_vs_rdsps_nofilt_opt"
 
 
 station_dict = default_params.station_dict
@@ -18,7 +18,7 @@ station_dict = default_params.station_dict
 def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/home/olh001/Python/loadprogs_python/data/ciopse_2016_filt_opt/")
+    inp_data_root = Path("/home/olh001/Python/loadprogs_python/data/ciopse_2016_nofilt_opt/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
