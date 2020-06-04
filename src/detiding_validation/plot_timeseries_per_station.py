@@ -250,21 +250,40 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
         logger.info(f"No data for {st_id}, skipping")
         return
 
+    plot_freq = timedelta(hours=1)
+
+    # get the tolerance for choosing respective dates of origin
+    def __get_do_tolerance(_do_series):
+        t = _do_series.sort_values().unique()
+        # get total_seconds and divide by 2
+        total_seconds = (t[1] - t[0]) / np.timedelta64(1, 's')
+        return total_seconds / 2
+
     # calculate date of origin to identify different forecasts
     do_series = st_sel_by_station[io_manager.TIME_COL_NAME] - st_sel_by_station[io_manager.VALIDH_COL_NAME].map(
         lambda vh: timedelta(hours=vh))
     st_sel_by_station = st_sel_by_station.assign(dateo=do_series)
     st_sel_by_station = st_sel_by_station.sort_values(["dateo", io_manager.TIME_COL_NAME])
 
-    gs = GridSpec(nrows=2, ncols=1)
+    fc_length_counts = st_sel_by_station.groupby("dateo").count()[io_manager.VALIDH_COL_NAME]
+    fc_min_length_to_plot = fc_length_counts.max() // 4
+
+    logger.info(f"\n{fc_length_counts.head()}\n")
+
+    gs = GridSpec(nrows=2, ncols=1, hspace=0.4)
     for do, st_sel in st_sel_by_station.groupby("dateo"):
+
+        # don't plot forecasts with almost no data
+        if fc_length_counts[do] <= fc_min_length_to_plot:
+            logger.info(f"Skipping forecast from {do} for {st_id}, due to lack of data")
+            continue
+
         st_sel = st_sel.sort_values(io_manager.TIME_COL_NAME)
         st_sel = st_sel.set_index(io_manager.TIME_COL_NAME)
-        st_sel = st_sel.asfreq("60T")
+        st_sel = st_sel.asfreq(plot_freq)
         if len(st_sel.dropna()) == 0:
             logger.warning(f"No obs data for {st_id} and {do}, skipping it.")
             continue
-
 
         fig = plt.figure(figsize=(8, 6))
         axes = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[1, 0])]
@@ -275,14 +294,21 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
         for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
             st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id]
 
-            do_series = st_sel_by_station[io_manager.TIME_COL_NAME] - st_sel_by_station[io_manager.VALIDH_COL_NAME].map(
+            do_series = st_sel_mod[io_manager.TIME_COL_NAME] - st_sel_mod[io_manager.VALIDH_COL_NAME].map(
                 lambda vh: timedelta(hours=vh))
             st_sel_mod = st_sel_mod.assign(dateo=do_series)
-            st_sel_mod = st_sel_mod[st_sel_mod["dateo"] == do]
+
+            tol = __get_do_tolerance(do_series)
+            st_sel_mod = st_sel_mod[(st_sel_mod["dateo"] - do).map(lambda t: abs(t.total_seconds())) < tol]
 
             st_sel_mod = st_sel_mod.sort_values(io_manager.TIME_COL_NAME)
 
-            assert len(st_sel_mod) > 0, f"No model data data for {st_id}"
+            logger.debug(f"\nstation: {st_id}, date of origin: {do}, sim label: {model_label},"
+                         f" timeseries length: {len(st_sel_mod)}\n")
+
+            if len(st_sel_mod) == 0:
+                logger.info(f"No model data data for {st_id}")
+                continue
 
             mod_cols = [c for c in st_sel_mod if c.startswith("mod")]
 
@@ -291,9 +317,9 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
             if len(mod_cols) > 1:
                 # ensemble
                 mod_members_to_plot = st_sel_mod[mod_cols]
-                median = mod_members_to_plot.median(axis=1).asfreq("60T")
-                qmax = mod_members_to_plot.quantile(0.9, axis=1).asfreq("60T")
-                qmin = mod_members_to_plot.quantile(0.1, axis=1).asfreq("60T")
+                median = mod_members_to_plot.median(axis=1).asfreq(plot_freq)
+                qmax = mod_members_to_plot.quantile(0.9, axis=1).asfreq(plot_freq)
+                qmin = mod_members_to_plot.quantile(0.1, axis=1).asfreq(plot_freq)
 
                 median.plot(ax=axes[0], color=model_color, legend=False, linewidth=linewidth)
                 axes[0].fill_between(median.index, qmin, qmax, facecolor=model_color, alpha=0.2)
@@ -302,22 +328,23 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
 
                 # biases for each member
                 for m_col in mod_cols:
-                    (st_sel_mod.asfreq("60T")[m_col] - st_sel["obs"]).plot(
+                    (st_sel_mod.asfreq(plot_freq)[m_col] - st_sel["obs"]).plot(
                         ax=axes[1], color=[model_color, ], legend=False, grid=True,
                         linewidth=linewidth * 0.5)
 
             else:
                 # deterministic
                 for m_col in mod_cols:
-                    st_sel_mod.asfreq("60T").plot(y=[m_col, ],
+                    st_sel_mod.asfreq(plot_freq).plot(y=[m_col, ],
                                               ax=axes[0], color=[model_color, ], legend=False, grid=True,
                                               linewidth=linewidth)
 
                     # biases
-                    (st_sel_mod.asfreq("60T")[m_col] - st_sel["obs"]).plot(
+                    (st_sel_mod.asfreq(plot_freq)[m_col] - st_sel["obs"]).plot(
                                             ax=axes[1], color=[model_color, ], legend=False, grid=True,
                                             linewidth=linewidth)
                     axes[1].set_title("Bias (mod-obs)")
+
 
             # only one system is scored
             if only_one_model_to_plot:
@@ -327,6 +354,8 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
 
         axes[0].set_title(f"forecast start: {do}")
         # axes[0].set_xlim(st_time, en_time)
+        # no xlabel below the first panel
+        axes[0].set_xlabel("")
 
         legend_handles = [Line2D([0], [0], color="k", label=r"Obs", linewidth=linewidth * 2), ] + \
                          [Line2D([0], [0], color=c, label=f"{model_label}", linewidth=linewidth) for c, model_label in
