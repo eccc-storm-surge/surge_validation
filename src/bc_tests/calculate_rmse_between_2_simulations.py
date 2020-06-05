@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 import numpy as np
 
-from tidal_constituents.get_constituents_nd import get_constituents, reshape_constituents_to_mask
-from utils.io_utils.fst import get_coords_and_mask, get_b2b_data_from_dir
+from ..tidal_constituents.get_constituents_nd import get_constituents, reshape_constituents_to_mask
+from ..utils.io_utils.fst import get_coords_and_mask, get_b2b_data_from_dir
 
 from rpnpy.librmn import all as rmn
 rmn.fstopt(rmn.FSTOP_MSGLVL, rmn.FSTOPI_MSG_FATAL)
