@@ -46,7 +46,7 @@ station_dict = OrderedDict([
     ("900", "Bay Bulls, NL"),
     ("1050", "Fogo, NL"),
     ("1680", "Wood Islands, PE"),
-
+    ("575",  "Port Hawkesbury, NS")
 ])
 
 
