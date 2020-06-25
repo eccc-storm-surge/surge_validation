@@ -5,7 +5,7 @@ from multiprocessing import Process
 from pathlib import Path
 from datetime import datetime
 
-from surge_validation.detiding_validation.experiments import compare_forecast
+from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
 
 
 def main():

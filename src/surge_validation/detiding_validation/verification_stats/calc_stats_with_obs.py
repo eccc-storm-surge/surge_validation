@@ -4,9 +4,8 @@ Calculation of stats of model outputs and obs per station and overall
 
 import pandas as pd
 
-from surge_validation.detiding_validation import VALIDH_COL_NAME, STID_COL_NAME
-
-from surge_validation.detiding_validation import io_manager
+from ..io_manager import VALIDH_COL_NAME, STID_COL_NAME
+from .. import io_manager
 
 
 def weighted_avg(vals_df, counts_df, grouping_col=VALIDH_COL_NAME):

@@ -3,12 +3,12 @@ import logging
 from collections import OrderedDict
 from multiprocessing import Process
 from pathlib import Path
-from surge_validation.detiding_validation.config import default_params
 from datetime import datetime
 
-from surge_validation.detiding_validation.maps.b2b_scores_scatter import plot_score_maps
-from surge_validation.detiding_validation.plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
-from surge_validation.detiding_validation import compare_2_simulations
+from ..config import default_params
+from ..maps.b2b_scores_scatter import plot_score_maps
+from ..plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
+from ..surge_stats_entry import compare_2_simulations
 import numpy as np
 
 EXP_ID = "FC70H17V2"

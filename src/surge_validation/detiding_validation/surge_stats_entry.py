@@ -9,9 +9,9 @@ from surge_validation.detiding_validation.config import default_params
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import MultipleLocator, NullLocator
 
-from surge_validation.detiding_validation import io_manager
-from surge_validation.detiding_validation import qqplot
-from surge_validation.detiding_validation.verification_stats import stde, gamma, stde_obs, gamma_varobsallvhour
+from . import io_manager
+from .qq_plot import qqplot
+from .verification_stats.calc_stats_with_obs import stde, gamma, stde_obs, gamma_varobsallvhour
 import matplotlib.pyplot as plt
 from datetime import datetime
 
