@@ -95,6 +95,8 @@ def compare_forecast(station_dict=default_params.station_dict,
         else:
             b2b_cutoff_hours_token = ""
 
+        split_seasons = options.get("b2b_split_seasons", None)
+
         ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_cutoff_hours_token}"
         ts_plots_dir.mkdir(exist_ok=True, parents=True)
         station_scores = compare_sims_timeseries_back2back(labels, data_paths, data_colors,
@@ -102,7 +104,8 @@ def compare_forecast(station_dict=default_params.station_dict,
                                           station_dict=station_dict,
                                           st_time=st_time, en_time=en_time,
                                           run_freq_hours=b2b_nhours, linewidth=0.3,
-                                          b2b_cutoff_hours=b2b_cutoff_hours, member_id=member_id)
+                                          b2b_cutoff_hours=b2b_cutoff_hours, member_id=member_id,
+                                          split_seasons=split_seasons)
 
         plot_score_maps(station_scores, labels, data_paths, img_dir=img_dir)
 

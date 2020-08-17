@@ -400,9 +400,11 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
                                       plots_dir: Path = None,
                                       station_dict=default_params.station_dict, st_time=None, en_time=None,
                                       run_freq_hours=12, linewidth=1,
-                                      b2b_cutoff_hours=1000, member_id=""):
+                                      b2b_cutoff_hours=1000, member_id="",
+                                      split_seasons=None):
     """
     Use for comparing timeseries, more or less general interface
+    :param split_seasons: dict {season_label: month_list}
     :param member_id:
     :param run_freq_hours: if dict {data_label: run_freq_hours}
     :param linewidth:
@@ -434,10 +436,46 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
 
     station_scores = {}
     for st_id in station_dict:
-        label_to_scores = plot_time_series_for_station_many_models(swl_list, st_id, st_time=st_time, en_time=en_time,
-                                                 img_dir=plots_dir, model_label_list=model_labels,
-                                                 model_colors=model_colors, run_freq_hours=run_freq_hours,
-                                                 linewidth=linewidth, station_dict=station_dict, member_id=member_id)
+
+        kwargs = dict(
+            st_time=st_time,
+            en_time=en_time,
+            model_label_list=model_labels,
+            model_colors=model_colors,
+            run_freq_hours=run_freq_hours,
+            linewidth=linewidth,
+            station_dict=station_dict,
+            member_id=member_id
+        )
+
+        label_to_scores = plot_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
+
+        # do seasonal plots if requested
+        if split_seasons is not None:
+
+            # x limits are varying for the seasonal plots
+            kwargs["st_time"] = None
+            kwargs["en_time"] = None
+
+            # this approach requires non-overlapping seasons (i.e 2 different seasons cannot contain the same month)
+            month_to_season = {}
+            for season, months in split_seasons.items():
+                for m in months:
+                    month_to_season[m] = season
+
+            # group by seasons
+            season_cols = [swl[io_manager.TIME_COL_NAME].map(lambda t: month_to_season.get(t.month, "unknown_season")) for swl in swl_list]
+            swl_list_groups = [swl.groupby(by=season_col) for swl, season_col in zip(swl_list, season_cols)]
+
+            for season, months in split_seasons.items():
+                plots_dir_season = plots_dir / "seasons" / f"{season}"
+
+                plots_dir_season.mkdir(exist_ok=True, parents=True)
+
+                swl_list_season = [swl_group.get_group(season) for swl_group in swl_list_groups]
+
+                plot_time_series_for_station_many_models(swl_list_season, st_id, img_dir=plots_dir_season, **kwargs)
+
         station_scores[st_id] = label_to_scores
 
     return station_scores
