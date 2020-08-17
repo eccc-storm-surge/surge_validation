@@ -27,7 +27,7 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
     img_dir = Path(f"data/plots/{label}")
 
     swl_path_old = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge_rdsps.dat"))
-    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*/surge_ciopse.dat"))
+    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge_ciopse.dat"))
 
     exp_id_labels = [
         "RDSPS(FC) (surge)", "CIOPSE(FC) (surge)"
@@ -45,7 +45,7 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     options = {
         "do_full_forecast_timeseries": True,
-        "calculate_scores": False
+        "calculate_scores": True
     }
 
     default_params.vname_to_limits = {
