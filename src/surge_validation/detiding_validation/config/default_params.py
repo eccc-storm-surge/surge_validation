@@ -8,7 +8,8 @@ station_dict = OrderedDict([
     ("8410140", "Eastport, ME"),
     ("65", "Saint John, NB"),
     ("365", "Yarmouth, NS"),
-    ("491", "Halifax, NS"),
+    ("490", "Halifax, NS"),
+    ("491", "Bedford Institute, NS"),
     ("612", "North Sydney, NS"),
     ("1700", "Charlottetown, PE"),
     ("1805", "Shediac Bay, NB"),
@@ -46,10 +47,40 @@ station_dict = OrderedDict([
     ("900", "Bay Bulls, NL"),
     ("1050", "Fogo, NL"),
     ("1680", "Wood Islands, PE"),
-    ("575",  "Port Hawkesbury, NS")
+    ("575",  "Port Hawkesbury, NS"),
+    ("7120", "Victoria *"),
+    ("7277", "Patricia Bay *"),
+    ("7735", "Vancouver *"),
+    ("7795", "Point Atkinson *"),
+    ("7917", "Nanaimo"),
+    ("8074", "Campbell River *"),
+    ("8408", "Port Hardy *"),
+    ("8545", "Bamfield *"),
+    ("8615", "Tofino *"),
+    ("8735", "Winter Harbour *"),
+    ("8976", "Bella Bella *"),
+    ("9130", "Hartley Bay"),
+    ("9140", "Kitimat"),
+    ("9227", "Bonilla Island"),
+    ("9354", "Prince Rupert *"),
+    ("9850", "Queen Charlotte *"),
+    ("9958", "Henslung Cove"),
+    ("9437540", "Garibaldi"),
+    ("9440581", "Cape Disappointment"),
+    ("9440910", "Toke Point"),
+    ("9441102", "Westport"),
+    ("9442396", "La Push, Quillayute River"),
+    ("9443090", "Neah Bay"),
+    ("9444090", "Port Angeles"),
+    ("9444900", "Port Townsend"),
+    ("9449424", "Cherry Point"),
+    ("9449880", "Friday Harbor"),
+    ("9450460", "Ketchikan"),
+    ("9451054", "Port Alexander"),
+    ("9451600", "Sitka"),
+    ("9452210", "Juneau"),
+    ("9452634", "Elfin Cove"),
 ])
-
-
 
 ignore_in_overall = [491]
 
@@ -67,7 +98,7 @@ COLOR_NEW = "r"
 score_clevs = {
     "gamma2": np.arange(0, 0.6, 0.05),
     "sigma": np.arange(0, 0.2, 0.02),
-    "gamma2_diff": np.arange(-0.20, 0.21, 0.02),
-    "sigma_diff": np.arange(-0.06, 0.07, 0.02),
+    "gamma2_diff": np.arange(-0.205, 0.21, 0.01),
+    "sigma_diff": np.arange(-0.065, 0.07, 0.01),
 
 }
