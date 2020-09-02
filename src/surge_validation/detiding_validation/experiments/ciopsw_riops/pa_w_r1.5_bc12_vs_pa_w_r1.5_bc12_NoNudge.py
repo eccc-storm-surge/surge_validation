@@ -9,7 +9,7 @@ from datetime import datetime
 
 from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
 
-EXP_ID = "ciopswv1.5_bc0_vs_bc12"
+EXP_ID = "ciopswv1.5_bc12_vs_bc12_NoNudge"
 
 
 station_dict = default_params.station_dict
@@ -26,11 +26,11 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
     label = f"{EXP_ID}_{st_s}_{en_s}"
     img_dir = Path(f"data/plots/{label}")
 
-    swl_path_old = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc0*.dat"))
-    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc12*.dat"))
+    swl_path_old = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc12.dat"))
+    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc12_NoNudge*.dat"))
 
     exp_id_labels = [
-        "CIOPSW (PA, surge, r1.5_bc0)", "CIOPSW (PA, surge, r1.5_bc12)"
+        "CIOPSW (PA, surge, r1.5_bc12)", "CIOPSW (PA, surge, r1.5_bc12_NoNudge)"
     ]
 
     b2b_nhours = {

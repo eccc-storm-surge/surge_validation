@@ -41,7 +41,7 @@ def get_stid_to_coord_mapping(data_path) -> pd.DataFrame:
     return df_meta
 
 
-def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path):
+def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path, map_label=""):
 
     img_dir.mkdir(exist_ok=True, )
     station_info = get_stid_to_coord_mapping(data_path=data_paths[mod_labels[0]])
@@ -134,7 +134,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path):
                 logger.info(f"There is only 1 unique model label ({mod_label}), only plotting its scores.")
                 break
 
-    img = img_dir / "map_scores.png"
+    img = img_dir / f"map_scores{map_label}.png"
     fig.canvas.draw()
     # fig.tight_layout()
     fig.savefig(img, bbox_inches="tight", dpi=300)

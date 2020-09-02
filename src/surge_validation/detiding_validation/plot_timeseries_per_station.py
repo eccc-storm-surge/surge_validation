@@ -145,7 +145,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     model_label_to_series = OrderedDict()
 
     # Select and plot obs on top of the model data
-    st_sel_obs = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id]
+    st_sel_obs = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id].copy()
     st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] <= run_freq_hours[model_label_list[0]]]
     st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
     st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
@@ -160,7 +160,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     axes = [fig.gca()]
 
     for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
-        st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id]
+        st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
         st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] <= run_freq_hours[model_label]]
 
         st_sel_mod.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
@@ -204,7 +204,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
 
 def draw_mpl_table(lab_to_color: dict, lab_to_series: dict):
-    columns = (r"$\gamma^2$", r"$\sigma_{\varepsilon}$")
+    columns = (r"$\gamma^2$", r"$\sigma_{\varepsilon}$", r"corr.")
     rows = [rk for rk in lab_to_color]
     cell_text = []
 
@@ -215,17 +215,22 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict):
     for lab in rows:
 
         logger.debug("\nobs\n%s\nmod\n%s", obs.head(), lab_to_series[lab].head())
-        mod = lab_to_series[lab]
+        mod = lab_to_series[lab].copy()
 
         indices = mod.index.intersection(obs.index)
 
         mod = mod.loc[indices]
         obs_sel = obs.loc[indices]
 
-        gamma2 = np.std(mod.values - obs_sel.values) ** 2 / np.std(obs_sel.values) ** 2
-        sigma = np.std(mod.values - obs_sel.values)
+        # take out mean over the selected period (to make sure that the mean is 0)
+        mod -= mod.mean()
+        obs_sel -= obs_sel.mean()
 
-        cell_text.append([f"{gamma2:.2f}", f"{sigma:.4f}"])
+        gamma2 = (mod - obs_sel).std() ** 2 / obs_sel.std() ** 2
+        sigma = (mod - obs_sel).std()
+        corr = mod.corr(obs_sel)
+
+        cell_text.append([f"{gamma2:.2f}", f"{sigma:.4f}", f"{corr:.2f}"])
 
         label_to_scores[lab] = {"gamma2": gamma2, "sigma": sigma, "count": len(indices)}
 
@@ -435,27 +440,33 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
             logger.info(f"st_time={st_time}, b2b_cutoff_hours is ignored!")
 
     station_scores = {}
+
+    season_to_station_to_scores = {season: {} for season in split_seasons} if split_seasons is not None else dict()
+
+    kwargs = dict(
+        st_time=st_time,
+        en_time=en_time,
+        model_label_list=model_labels,
+        model_colors=model_colors,
+        run_freq_hours=run_freq_hours,
+        linewidth=linewidth,
+        station_dict=station_dict,
+        member_id=member_id
+    )
+
+    kwargs_season = kwargs.copy()
+
     for st_id in station_dict:
 
-        kwargs = dict(
-            st_time=st_time,
-            en_time=en_time,
-            model_label_list=model_labels,
-            model_colors=model_colors,
-            run_freq_hours=run_freq_hours,
-            linewidth=linewidth,
-            station_dict=station_dict,
-            member_id=member_id
-        )
-
         label_to_scores = plot_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
+        station_scores[st_id] = label_to_scores
 
         # do seasonal plots if requested
         if split_seasons is not None:
 
             # x limits are varying for the seasonal plots
-            kwargs["st_time"] = None
-            kwargs["en_time"] = None
+            kwargs_season["st_time"] = None
+            kwargs_season["en_time"] = None
 
             # this approach requires non-overlapping seasons (i.e 2 different seasons cannot contain the same month)
             month_to_season = {}
@@ -474,11 +485,12 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
 
                 swl_list_season = [swl_group.get_group(season) for swl_group in swl_list_groups]
 
-                plot_time_series_for_station_many_models(swl_list_season, st_id, img_dir=plots_dir_season, **kwargs)
+                season_to_station_to_scores[season][st_id] = plot_time_series_for_station_many_models(swl_list_season,
+                                                                                                      st_id,
+                                                                                                      img_dir=plots_dir_season,
+                                                                                                      **kwargs_season)
 
-        station_scores[st_id] = label_to_scores
-
-    return station_scores
+    return station_scores, season_to_station_to_scores
 
 
 def compare_sims_timeseries_one_plot_per_fc(data_labels: list = None, data_paths: dict = None, data_colors: dict = None,
