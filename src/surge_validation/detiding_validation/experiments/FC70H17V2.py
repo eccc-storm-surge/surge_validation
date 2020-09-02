@@ -99,15 +99,25 @@ def compare_forecast(station_dict=default_params.station_dict,
 
         ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_cutoff_hours_token}"
         ts_plots_dir.mkdir(exist_ok=True, parents=True)
-        station_scores = compare_sims_timeseries_back2back(labels, data_paths, data_colors,
-                                          ts_plots_dir,
-                                          station_dict=station_dict,
-                                          st_time=st_time, en_time=en_time,
-                                          run_freq_hours=b2b_nhours, linewidth=0.3,
-                                          b2b_cutoff_hours=b2b_cutoff_hours, member_id=member_id,
-                                          split_seasons=split_seasons)
+        station_scores, season_to_stid_to_score = compare_sims_timeseries_back2back(labels, data_paths, data_colors,
+                                                                                    ts_plots_dir,
+                                                                                    station_dict=station_dict,
+                                                                                    st_time=st_time, en_time=en_time,
+                                                                                    run_freq_hours=b2b_nhours,
+                                                                                    linewidth=0.3,
+                                                                                    b2b_cutoff_hours=b2b_cutoff_hours,
+                                                                                    member_id=member_id,
+                                                                                    split_seasons=split_seasons)
 
         plot_score_maps(station_scores, labels, data_paths, img_dir=img_dir)
+
+        # plot score maps per season
+        img_dir_season = img_dir / "seasonal_maps"
+        img_dir_season.mkdir(exist_ok=True, parents=True)
+        for season, scores in season_to_stid_to_score.items():
+            plot_score_maps(scores, labels, data_paths,
+                            img_dir=img_dir_season,
+                            map_label=f"{season}")
 
     # b) full forecasts
     if options.get("do_full_forecast_timeseries", True):
