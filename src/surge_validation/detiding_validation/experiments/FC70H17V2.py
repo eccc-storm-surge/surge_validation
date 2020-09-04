@@ -97,6 +97,14 @@ def compare_forecast(station_dict=default_params.station_dict,
 
         split_seasons = options.get("b2b_split_seasons", None)
 
+        if split_seasons is not None:
+            # sanity check
+            months = []
+            for season, mlist in split_seasons.items():
+                months.extend(mlist)
+
+            assert len(set(months)) == len(months), "Season months should not intersect"
+
         ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_cutoff_hours_token}"
         ts_plots_dir.mkdir(exist_ok=True, parents=True)
         station_scores, season_to_stid_to_score = compare_sims_timeseries_back2back(labels, data_paths, data_colors,
