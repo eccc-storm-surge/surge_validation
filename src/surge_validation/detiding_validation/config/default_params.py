@@ -82,7 +82,7 @@ station_dict = OrderedDict([
     ("9452634", "Elfin Cove"),
 ])
 
-ignore_in_overall = [491]
+ignore_in_overall = ["491", ]
 
 vname_to_limits = {
     "stde": (0, 0.1),
