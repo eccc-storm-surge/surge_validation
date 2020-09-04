@@ -43,12 +43,12 @@ def read_wl_station_data(data_store, station_dict=default_params.station_dict,
 
     logging.info(f"Reading {data_store_p} ...")
 
+    df = pd.read_csv(data_store_p, sep=r"\s+", header=None, index_col=False,
+                     converters={0: int,
+                                 1: str,
+                                 2: float, 3: float,
+                                 4: lambda s: datetime.strptime(s, "%Y%m%d%H")})
     if data_store_p.is_file():
-        df = pd.read_csv(data_store_p, sep=r"\s+", header=None, index_col=False,
-                         converters={1: str,
-                                     0: int,
-                                     2: float, 3: float,
-                                     4: lambda s: datetime.strptime(s, "%Y%m%d%H")})
 
         col_names = [VALIDH_COL_NAME, STID_COL_NAME, LAT_COL_NAME, LON_COL_NAME, TIME_COL_NAME, "obs", ]
 
