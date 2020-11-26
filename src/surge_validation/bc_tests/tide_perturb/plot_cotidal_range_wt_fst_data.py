@@ -9,7 +9,7 @@ from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from rpnpy.librmn import all as rmn
 
-from surge_validation.tidal_constituents import get_constituents, reshape_constituents_to_mask
+from surge_validation.tidal_constituents.get_constituents_nd import get_constituents, reshape_constituents_to_mask
 from surge_validation.utils.io_utils import fst
 
 import numpy as np

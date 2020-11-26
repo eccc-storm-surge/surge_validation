@@ -4,6 +4,7 @@ Plot maps of points (scatter) with gamma^2 and \sigma_{\varepsilon} as colors
 import logging
 from pathlib import Path
 
+import cartopy
 import pandas as pd
 from matplotlib import cm
 from matplotlib.colors import BoundaryNorm
