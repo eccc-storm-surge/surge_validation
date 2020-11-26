@@ -68,8 +68,11 @@ def plot_cotidal_range_for_member(member_id, ax, data, amp_clevs=np.arange(0, 1.
 
     if construct_cb:
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="3%", pad=0.1, axes_class=plt.Axes)
-        cb = ax.figure.colorbar(csf, cax=cax)
+        cax = divider.append_axes("bottom", size="3%", pad=0.1, axes_class=plt.Axes)
+        cb = ax.figure.colorbar(csf, cax=cax, orientation="horizontal")
+
+        plt.setp(cb.ax.get_xticklabels(), rotation=45)
+
         cb.ax.set_visible(show_cb)
 
         # ax.set_title(m_id)
