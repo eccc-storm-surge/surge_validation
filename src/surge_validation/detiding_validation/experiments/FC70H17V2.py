@@ -5,10 +5,11 @@ from multiprocessing import Process
 from pathlib import Path
 from datetime import datetime
 
+from surge_validation.detiding_validation.config.default_params import get_color_list
 from ..config import default_params
 from ..maps.b2b_scores_scatter import plot_score_maps
 from ..plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
-from ..surge_stats_entry import compare_2_simulations
+from ..surge_stats_entry import compare_2_simulations, compare_n_simulations
 import numpy as np
 
 EXP_ID = "FC70H17V2"
@@ -71,20 +72,16 @@ def compare_forecast(station_dict=default_params.station_dict,
         f"{exp_id}" for exp_id in exp_id_list
     ]
 
-    swl_path_old, swl_path_new = [exp_id_to_path[exp_id] for exp_id in exp_id_list]
+    exp_id_to_color = OrderedDict(zip(exp_id_to_path, get_color_list()))
 
     if options.get("calculate_scores", True):
-        compare_2_simulations(swl_path_old, swl_path_new, img_dir, station_dict=station_dict,
-                              label_old=labels[0],
-                              label_new=labels[1],
+        compare_n_simulations(exp_id_to_path, exp_id_to_color, img_dir, station_dict=station_dict,
                               forecast_hour_tick_multiplier=score_plots_params["forecast_hour_tick_multiplier"],
                               max_lead_hour=score_plots_params.get("max_lead_hour", None),
                               custom_rc_params=plot_params, n_subplot_cols=n_subplot_cols,
                               qq_lead_hour_range=qq_lead_hour_range, show_avg_diff=len(np.unique(labels)) > 1,
                               member_id=member_id, select_stations=list(station_dict))
 
-    data_paths = OrderedDict(zip(labels, [swl_path_old, swl_path_new]))
-    data_colors = OrderedDict(zip(labels, ["b", "r"]))
 
     # plot time series
 
@@ -103,11 +100,11 @@ def compare_forecast(station_dict=default_params.station_dict,
             for season, mlist in split_seasons.items():
                 months.extend(mlist)
 
-            assert len(set(months)) == len(months), "Season months should not intersect"
+            assert len(set(months)) == len(months), "Different seasons should not contain the same month!"
 
         ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_cutoff_hours_token}"
         ts_plots_dir.mkdir(exist_ok=True, parents=True)
-        station_scores, season_to_stid_to_score = compare_sims_timeseries_back2back(labels, data_paths, data_colors,
+        station_scores, season_to_stid_to_score = compare_sims_timeseries_back2back(labels, exp_id_to_path, exp_id_to_color,
                                                                                     ts_plots_dir,
                                                                                     station_dict=station_dict,
                                                                                     st_time=st_time, en_time=en_time,
@@ -115,22 +112,25 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                                                     linewidth=0.3,
                                                                                     b2b_cutoff_hours=b2b_cutoff_hours,
                                                                                     member_id=member_id,
-                                                                                    split_seasons=split_seasons)
+                                                                                    split_seasons=split_seasons,
+                                                                                    remove_ndays_mean=options.get("b2b_remove_ndays_mean", None))
 
-        plot_score_maps(station_scores, labels, data_paths, img_dir=img_dir)
+        plot_score_maps(station_scores, labels, exp_id_to_path, img_dir=img_dir,
+                        plot_params=options)
 
         # plot score maps per season
         img_dir_season = img_dir / "seasonal_maps"
         img_dir_season.mkdir(exist_ok=True, parents=True)
         for season, scores in season_to_stid_to_score.items():
-            plot_score_maps(scores, labels, data_paths,
+            plot_score_maps(scores, labels, exp_id_to_path,
                             img_dir=img_dir_season,
-                            map_label=f"{season}")
+                            map_label=f"{season}",
+                            plot_params=options)
 
     # b) full forecasts
     if options.get("do_full_forecast_timeseries", True):
         ts_plots_dir = img_dir / f"timeseries_complete_forecast"
-        compare_sims_timeseries_one_plot_per_fc(labels, data_paths, data_colors,
+        compare_sims_timeseries_one_plot_per_fc(labels, exp_id_to_path, exp_id_to_color,
                                                 ts_plots_dir,
                                                 station_dict=station_dict,
                                                 st_time=st_time, en_time=en_time,

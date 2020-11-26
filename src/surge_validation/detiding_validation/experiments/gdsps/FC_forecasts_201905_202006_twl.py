@@ -3,13 +3,14 @@
 Filtering tides in ciopse and obs for validation
 """
 import logging
+from collections import OrderedDict
 from pathlib import Path
 from surge_validation.detiding_validation.config import default_params
 from datetime import datetime
 
 from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
-
-EXP_ID = "ciopswv1.5_bc0_vs_bc0_detide_method1"
+import numpy as np
+EXP_ID = "gdsps_FC201905_202006_sept_only"
 
 
 station_dict = default_params.station_dict
@@ -18,7 +19,7 @@ station_dict = default_params.station_dict
 def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/fs/homeu1/eccc/cmd/cmde/olh001/Python/loadprogs_python_experiments/data/ciopsw_v1.5_pa/")
+    inp_data_root = Path("/home/olh001/Python/dev/loadprogs_python_netcdf/data/gdsps/fc/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
@@ -26,22 +27,22 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
     label = f"{EXP_ID}_{st_s}_{en_s}"
     img_dir = Path(f"data/plots/{label}")
 
-    swl_path_old = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc0.dat"))
-    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc0*detide_method1*.dat"))
+    swl_path_old = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*gdsps*twl*.dat"))
+    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*gdsps*twl*.dat"))
 
     exp_id_labels = [
-        "CIOPSW (PA, surge, r1.5_bc0)",
-        "CIOPSW (PA, surge, r1.5_bc0*)"
+        "GDSPS(FC) (twl)",
+        "GDSPS(FC) (twl)",
     ]
 
     b2b_nhours = {
-        exp_id_labels[0]: 1,
-        exp_id_labels[1]: 1
+        exp_id_labels[0]: 12,
+        exp_id_labels[1]: 12
     }
 
     score_plots_params = {
-        "forecast_hour_tick_multiplier": 6,
-        "max_lead_hour": 48
+        "forecast_hour_tick_multiplier": 24,
+        "max_lead_hour": 240
     }
 
     # b2b_split_seasons = {
@@ -57,8 +58,8 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     options = {
         "do_full_forecast_timeseries": False,
-        "calculate_scores": False,
-        "b2b_split_seasons": b2b_split_seasons
+        "calculate_scores": True,
+        # "b2b_split_seasons": b2b_split_seasons
     }
 
     default_params.vname_to_limits = {
@@ -67,6 +68,16 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
         "stde_obs": (0, 1.),
         "gamma_varobsallvhour": (0, None)
     }
+
+    default_params.score_clevs = {
+        "gamma2": np.arange(0, 0.6, 0.05),
+        "sigma": np.arange(0, 0.4, 0.02),
+        "gamma2_diff": np.arange(-0.205, 0.21, 0.01),
+        "sigma_diff": np.arange(-0.065, 0.07, 0.01),
+    }
+
+    # debug
+    station_dict = OrderedDict([("491", station_dict["491"])])
 
     exp_id_to_path = dict(zip(exp_id_labels, [swl_path_old, swl_path_new]))
     compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
@@ -83,8 +94,8 @@ def main():
     # st_date = datetime(2017, 1, 1, 0)
     # en_date = datetime(2017, 12, 31, 18)
 
-    st_date = datetime(2016, 1, 1, 0)
-    en_date = datetime(2017, 1, 1, 0)
+    st_date = datetime(2019, 9, 1, 0)
+    en_date = datetime(2019, 10, 1, 0)
 
     fc(station_dict=station_dict, st_date=st_date, en_date=en_date)
 

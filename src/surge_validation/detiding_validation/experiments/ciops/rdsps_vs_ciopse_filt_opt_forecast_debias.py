@@ -9,7 +9,7 @@ from datetime import datetime
 
 from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
 
-EXP_ID = "ciopse_vs_rdsps_filt_opt_forecast_debias"
+EXP_ID = "ciopse_vs_rdsps_filt_opt_forecast_debias_v004"
 
 
 station_dict = default_params.station_dict
@@ -18,7 +18,7 @@ station_dict = default_params.station_dict
 def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/fs/homeu1/eccc/cmd/cmde/olh001/Python/loadprogs_python_experiments/data/ciops_vs_rdsps_fc_debias/")
+    inp_data_root = Path("/fs/homeu1/eccc/cmd/cmde/olh001/Python/loadprogs_python_experiments/data/ciops_vs_rdsps_fc_debias_v003/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
@@ -49,7 +49,7 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
 
     options = {
-        "do_full_forecast_timeseries": True,
+        "do_full_forecast_timeseries": False,
         "calculate_scores": True,
         "b2b_split_seasons": b2b_split_seasons
     }

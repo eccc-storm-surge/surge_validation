@@ -9,7 +9,7 @@ from datetime import datetime
 
 from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
 
-EXP_ID = "ciopswv1.5_bc12_vs_bc12_NoNudge"
+EXP_ID = "ciopswv1.5_bc12_vs_bc12_NoNudge_v002"
 
 
 station_dict = default_params.station_dict
@@ -18,7 +18,7 @@ station_dict = default_params.station_dict
 def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/fs/homeu1/eccc/cmd/cmde/olh001/Python/loadprogs_python_experiments/data/ciopsw_v1.5_pa/")
+    inp_data_root = Path("/fs/homeu1/eccc/cmd/cmde/olh001/Python/loadprogs_python_experiments/data/ciopsw_v1.5_pa_v002/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
@@ -27,7 +27,7 @@ def fc(station_dict=default_params.station_dict, st_date=None, en_date=None):
     img_dir = Path(f"data/plots/{label}")
 
     swl_path_old = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc12.dat"))
-    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc12_NoNudge*.dat"))
+    swl_path_new = next(inp_data_root.rglob(f"*{st_s}*{en_s}*/surge*pa_w_r1.5_bc12_NoNudge.dat"))
 
     exp_id_labels = [
         "CIOPSW (PA, surge, r1.5_bc12)", "CIOPSW (PA, surge, r1.5_bc12_NoNudge)"
