@@ -1,6 +1,5 @@
 """
-= GDSPS hindcast===============
-Filtering tides in ciopse and obs for validation
+= GDSPS ===============
 """
 import logging
 from collections import OrderedDict
