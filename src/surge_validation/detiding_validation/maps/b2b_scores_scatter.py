@@ -42,7 +42,12 @@ def get_stid_to_coord_mapping(data_path) -> pd.DataFrame:
     return df_meta
 
 
-def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path, map_label=""):
+def plot_score_maps(station_to_scores, mod_labels, data_paths,
+                    img_dir: Path, map_label="",
+                    plot_params=None):
+
+    if plot_params is None:
+        plot_params = {}
 
     img_dir.mkdir(exist_ok=True, )
     station_info = get_stid_to_coord_mapping(data_path=data_paths[mod_labels[0]])
@@ -54,16 +59,29 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path, ma
 
     projection = ccrs.PlateCarree()
 
-    fig = plt.figure(figsize=(16, 4))
-    gs = GridSpec(len(score_ids), len(mod_labels) + 1, hspace=0.00, wspace=0.2)
-
     only_one_model_label = len(set(mod_labels)) == 1
+
+    gs = GridSpec(len(score_ids), len(set(mod_labels)) + (1 - int(only_one_model_label)),
+                  hspace=0.1, wspace=0.2)
+
+    if "score_map_figsize" not in plot_params:
+        fig_width = 16
+        if only_one_model_label:
+            fig_width = 6
+
+        figsize = (fig_width, 6)
+    else:
+        figsize = plot_params["score_map_figsize"]
+
+    fig = plt.figure(figsize=figsize)
 
     val_mean = None
 
     # create grid of axes
     for i, score_id in enumerate(score_ids):
-        for j, mod_label in enumerate(mod_labels + [r"$\Delta$" + f"{mod_labels[1]} - {mod_labels[0]}"]):
+
+        labels = mod_labels if only_one_model_label else mod_labels + [r"$\Delta$" + f"{mod_labels[1]} -\n  {mod_labels[0]}"]
+        for j, mod_label in enumerate(labels):
             ax = fig.add_subplot(gs[i, j], projection=projection)
 
             if i == 0:
@@ -77,7 +95,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path, ma
 
             for stid in station_info.index:
 
-                if stid not in station_to_scores:
+                if stid not in station_to_scores or station_to_scores[stid] is None:
                     logger.info(f"Stats were not calculated for {stid}, not mapping it.")
                     continue
 
@@ -112,19 +130,37 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths, img_dir: Path, ma
 
             assert len(coords_x) == len(vals)
 
-            img = ax.scatter(coords_x, coords_y, c=vals, cmap=cmap, norm=norm, edgecolors="k", linewidths=0.3)
+            img = ax.scatter(coords_x, coords_y, c=vals,
+                             cmap=cmap,
+                             norm=norm,
+                             edgecolors="k",
+                             linewidths=0.3,
+                             s=plot_params.get("score_map_marker_size", None))
+
             logger.debug("\nvals=%s", vals)
             # create an axes on the right side of ax. The width of cax will be 5%
             # of ax and the padding between cax and ax will be fixed at 0.05 inch.
             divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05, axes_class=plt.Axes)
+            cax = divider.append_axes("right",
+                                      size=plot_params.get("score_map_colorbar_fraction", "5%"),
+                                      pad=0.05, axes_class=plt.Axes)
             cb = plt.colorbar(img, cax=cax, extend=extend)
             cb.ax.set_visible(j > 0 or only_one_model_label)
-            ax.coastlines(resolution="50m", linewidth=0.3)
+            ax.coastlines(resolution="10m", linewidth=0.2)
+            lakes = cartopy.feature.NaturalEarthFeature(
+                "physical", "lakes", "10m",
+                edgecolor="k",
+                facecolor="none",
+                linewidth=0.2
+            )
+            ax.add_feature(lakes)
+
+            bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
 
             if j < len(mod_labels):
                 ax.annotate(f"$\overline{{{score_labels[score_id][1:-1]}}} = {val_mean:.2f}$",
-                            xy=(0.01, 0.99), xycoords="axes fraction", va="top", ha="left")
+                            xy=(-0.0, 0.99), xycoords="axes fraction", va="top", ha="right",
+                            bbox=bbox_props)
 
             if j == 0:
                 ax.text(-0.07, 0.55, score_labels[score_id], va="bottom", ha="center",
