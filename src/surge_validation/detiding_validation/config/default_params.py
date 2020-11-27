@@ -139,3 +139,20 @@ score_clevs = {
     "sigma_diff": np.arange(-0.065, 0.07, 0.01),
 
 }
+
+
+def get_color_list():
+    """
+    get list of colors in the conventional order [b, r, ....]
+    :return:
+    """
+    from matplotlib import colors
+
+    # put blue, red, others in order
+
+    others = [c for c in colors.TABLEAU_COLORS if not ("blue" in c or "red" in c)]
+    first = [c for c in colors.TABLEAU_COLORS if "blue" in c]
+    second = [c for c in colors.TABLEAU_COLORS if "red" in c]
+
+    return first + second + others
+
