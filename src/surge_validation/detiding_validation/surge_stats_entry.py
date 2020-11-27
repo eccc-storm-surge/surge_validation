@@ -4,6 +4,7 @@ from pathlib import Path
 
 import matplotlib
 # matplotlib.use('agg')
+from matplotlib.artist import Artist
 
 from surge_validation.detiding_validation.config import default_params
 from matplotlib.gridspec import GridSpec
@@ -61,6 +62,65 @@ def style_axes(ax, locator_base=24):
     ax.tick_params(axis="x", which="minor", bottom=False)
 
 
+def plot_scores_generalize(ax, lbl_to_series: dict,
+                           lbl_to_color: dict,
+                           col_name, shared_ax=None,
+                           title="", show_avg_diff=True,
+                           ylimits=None):
+    """
+    Plot scores as function of forcast hour
+    :param lbl_to_series: Ordered dict {label: data}
+    :param show_avg_diff: True/False whether show or not the average difference between the models
+    :param ax:
+    :param old_series:
+    :param new_series:
+    :param col_name:
+    :param shared_ax:
+    :param title:
+    """
+
+    plotted_labels = []
+    info_top_right = 0.99
+
+    renderer = None
+    for idx, (lbl, series) in enumerate(lbl_to_series.items()):
+
+        if lbl in plotted_labels:
+            logger.info(f"Already plotted timeseries for {lbl}, skipping!")
+            continue
+
+        color = lbl_to_color[lbl]
+        ax = series.plot(y=col_name, legend=False,
+                         color=color,
+                         lw=0.5,
+                         ax=ax,
+                         sharex=shared_ax, sharey=None,
+                         rot=45, label=lbl, ylim=ylimits)
+
+        # display averaged difference for all forecast hours if requested
+        if show_avg_diff and idx > 0:
+            diff = series - lbl_to_series[plotted_labels[0]]
+            txt_artist = ax.text(0.99, info_top_right,
+                                 f"$<\Delta>_t$: {diff[col_name].mean():.4f}",
+                                 transform=ax.transAxes,
+                                 ha="right", va="top",
+                                 color=color)
+
+            if renderer is None:
+                ax.figure.canvas.draw()
+                renderer = ax.figure.canvas.renderer
+
+            assert isinstance(txt_artist, Artist)
+
+            # get the bottom of the current label for the next one (in axes fraction units)
+            info_top_right = ax.transAxes.inverted().transform(txt_artist.get_window_extent(renderer))[0, 1]
+
+        plotted_labels.append(lbl)
+
+    ax.set_title(title)
+    return ax
+
+
 def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
                 title="", labels=None, show_avg_diff=True, ylimits=None):
     """
@@ -101,6 +161,191 @@ def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
         logger.info(f"Labels are the same, plotting just 1 line")
 
     return ax
+
+
+def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
+                          station_dict=default_params.station_dict,
+                          member_id="",
+                          forecast_hour_tick_multiplier=24,
+                          select_stations=None, n_subplot_cols=4,
+                          custom_rc_params=None,
+                          show_avg_diff=True,
+                          qq_lead_hour_range=range(244), max_lead_hour=None):
+    logging.info("Start compare_n_simulations ...")
+    if custom_rc_params is None:
+        custom_rc_params = {}
+
+    img_dir.mkdir(exist_ok=True, parents=True)
+
+    # read the data into memory
+    lbl_to_data = OrderedDict([
+        (lbl, io_manager.read_wl_station_data(path, station_dict=station_dict, max_lead_hour=max_lead_hour))
+        for lbl, path in lbl_to_path.items()
+    ])
+
+    # set font size
+    if custom_rc_params is None:
+        matplotlib.rcParams.update({'font.size': 5})
+    else:
+        matplotlib.rcParams.update(custom_rc_params)
+
+    # TODO: add a flag to be able to disable qqplots
+
+    logger.debug(list(lbl_to_data.keys()))
+
+    for lead in qq_lead_hour_range:
+        qqplot(
+            label_to_dataframe=lbl_to_data, label_to_color=lbl_to_color,
+            station_dict=station_dict, plot_params=custom_rc_params, n_subplot_cols=n_subplot_cols,
+            img_dir=img_dir,
+            lead_h_min=lead, lead_h_max=lead
+        )
+
+    if not img_dir.exists():
+        img_dir.mkdir(parents=True, exist_ok=True)
+
+    statname_to_disp = {
+        "stde": r"$\sigma_{\varepsilon}$ (m)",
+        "gamma": r"$\gamma^2$",
+        "stde_obs": r"$\sigma_{Obs}$ (m)",
+        "gamma_varobsallvhour": r"$\gamma^2_{adj}$"
+    }
+
+    if member_id is None or len(member_id) == 0:
+        member_id = 0
+
+    stids_not_overall = default_params.ignore_in_overall
+    xlims = None
+    all_axes_except_last = []
+
+    data_any = next(v for v in lbl_to_data.values())
+
+    stats_functions = {
+        "_stde": stde,
+        "_gamma": gamma,
+        "_stde_obs": stde_obs,
+        "_gamma_varobsallvhour": gamma_varobsallvhour
+    }
+
+    member_col_index = 0
+    current_station_ids = data_any["station_id"].drop_duplicates()
+    for suffix, afunc in stats_functions.items():
+        col_names = io_manager.get_model_column_names(data_any, suffix=suffix)
+
+        lbl_to_stats = OrderedDict([
+            (lbl, afunc(data, stids_not_overall=stids_not_overall)) for lbl, data in lbl_to_data.items()
+        ])
+
+        any_stats = next(v for v in lbl_to_stats.values())
+
+        # determine number of rows in the panel plot
+        if select_stations is None:
+            nsubplots = 1 + len(current_station_ids)
+        else:
+            nsubplots = 1 + len([cid for cid in current_station_ids if cid in select_stations])
+
+        nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
+
+        fig = plt.figure(figsize=custom_rc_params.get("figure.figsize", (9, 12)))
+        gs = GridSpec(nrows, n_subplot_cols, top=0.90, wspace=0.4)
+        shared_ax = None
+
+        logger.debug(current_station_ids)
+        logger.debug("number of stations to process = {}".format(len(current_station_ids)))
+        logger.debug(f"Subplots: nrows={nrows}, ncols={n_subplot_cols}")
+
+        i = 0
+        for _i, st_id in enumerate(sorted(current_station_ids)):
+
+            # plot only selected stations
+            if select_stations is not None:
+                if st_id not in select_stations:
+                    continue
+
+            st_name = station_dict[st_id]
+
+            row, col = plot_index_to_row_col(i, n_subplot_cols)
+            ax = fig.add_subplot(gs[row, col], label=f"{row}_{col}_{st_id}")
+
+            if shared_ax is None:
+                shared_ax = ax
+                xlims = (any_stats[0].index.min(), any_stats[0].index.max())
+
+            if len(col_names) > 1:
+                logging.warning(f"Using member: {col_names[0]}")
+
+            logger.debug(f"i={i}, st_id={st_id}")
+
+            # get stats for the current station
+            lbl_to_series = OrderedDict([
+                (lbl, stats[0].xs(st_id, level="station_id")) for lbl, stats in lbl_to_stats.items()
+            ])
+
+            plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
+                                   lbl_to_color=lbl_to_color,
+                                   col_name=col_names[member_col_index],
+                                   shared_ax=shared_ax,
+                                   title=f"{st_name} ({st_id})",
+                                   show_avg_diff=show_avg_diff)
+
+            style_axes(ax, locator_base=forecast_hour_tick_multiplier)
+            all_axes_except_last.append(ax)
+            i += 1
+
+        # add overall stats plot
+        i = nsubplots - 1
+        row, col = plot_index_to_row_col(i, n_subplot_cols)
+        ax = fig.add_subplot(gs[row, col])
+
+        # get stats for all stations
+        lbl_to_series = OrderedDict([
+            (lbl, stats[1]) for lbl, stats in lbl_to_stats.items()
+        ])
+
+        plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
+                               lbl_to_color=lbl_to_color,
+                               col_name=col_names[member_col_index], shared_ax=shared_ax,
+                               title="All stations", show_avg_diff=show_avg_diff)
+
+        style_axes(ax, locator_base=forecast_hour_tick_multiplier)
+        ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4), borderaxespad=0.)
+
+        st_time = data_any[io_manager.TIME_COL_NAME].min()
+        en_time = data_any[io_manager.TIME_COL_NAME].max()
+        period_s = f"{st_time:%Y%m%d%H}-{en_time:%Y%m%d%H}"
+        fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
+
+        if max_lead_hour is not None:
+            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.png"
+        else:
+            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.png"
+
+        fig.savefig(str(img_file), dpi=400, bbox_inches="tight")
+
+        # save for overall stats into a separate file
+        fig = plt.figure(figsize=(5, 5))
+        ax = fig.gca()
+
+        plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
+                               lbl_to_color=lbl_to_color,
+                               col_name=col_names[member_col_index], shared_ax=None,
+                               title="All stations",
+                               show_avg_diff=show_avg_diff,
+                               ylimits=default_params.vname_to_limits[suffix[1:]])
+
+        style_axes(ax, locator_base=forecast_hour_tick_multiplier)
+        ax.legend(loc="upper left")
+        fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
+
+        if max_lead_hour is not None:
+            img_file = img_dir / f"all_stations_{suffix[1:]}_max_lead_{max_lead_hour}.png"
+        else:
+            img_file = img_dir / f"all_stations_{suffix[1:]}.png"
+
+        fig.savefig(img_file, dpi=400, bbox_inches="tight")
+        plt.close(fig)
+
+    logging.info("Finished compare_2_simulations ...")
 
 
 def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
