@@ -135,7 +135,7 @@ def get_b2b_data_from_dir_for_member_id(args):
         else:
             df["field"] = [rmn.fstluk(k)["d"][data_mask] for k in df["key"]]
 
-        logger.debug(f"(fst) read {len(df)} records into memory")
+        logger.debug(f"(fst): read {len(df)} records from {fpath} into memory")
 
         df_list.append(df)
 
@@ -150,7 +150,10 @@ def get_b2b_data_from_dir_for_member_id(args):
 
 
 @get_cache(token="get_b2b_data_from_dir")
-def get_b2b_data_from_dir(src_dir: Path, member_ids=None, data_query=None, data_mask=None):
+def get_b2b_data_from_dir(src_dir: Path,
+                          member_ids=None,
+                          data_query=None,
+                          data_mask=None):
     """
 
     :param src_dir:
@@ -163,7 +166,7 @@ def get_b2b_data_from_dir(src_dir: Path, member_ids=None, data_query=None, data_
 
     n_members = len(member_ids)
     input_list = list(zip([src_dir, ] * n_members, member_ids, [data_query, ] * n_members, [data_mask, ] * n_members))
-    return np.asarray([get_b2b_data_from_dir_for_member_id(inp) for inp in input_list])
+    return np.asarray([get_b2b_data_from_dir_for_member_id(inp) for inp in input_list]).squeeze()
 
 
 if __name__ == '__main__':
