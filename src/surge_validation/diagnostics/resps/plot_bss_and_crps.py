@@ -14,7 +14,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
-from surge_validation.detiding_validation.config import station_dict
+from surge_validation.detiding_validation.config.default_params import station_dict
 import numpy as np
 import re
 
@@ -104,8 +104,15 @@ def plot_crps_bss(data: dict, data_colors: dict,
                   out_dir: Path,
                   stats="BSS", ycol=BSS_INDEX, cur_station_dict=None, lead_hour_max=240,
                   ylims=(0, 1)):
-    ncols = 4
+    ncols = 3
 
+    plt.rcParams["font.size"] = 13
+
+    fontweight = "semibold"
+    plt.rcParams["font.weight"] = fontweight
+    plt.rcParams["axes.titleweight"] = fontweight
+    plt.rcParams["figure.titleweight"] = fontweight
+    plt.rcParams["axes.labelweight"] = fontweight
     plt.rcParams["errorbar.capsize"] = 2
 
     logger.debug(f"data = {data}")
@@ -119,7 +126,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
 
     nrows = nsubplots // ncols + int(nsubplots % ncols != 0)
 
-    fig = plt.figure(figsize=(20, 20))
+    fig = plt.figure(figsize=(8.5, 18))
     gs = GridSpec(nrows=nrows, ncols=ncols)
 
     stats_clean = stats.replace(" ", "")
@@ -162,7 +169,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
             ax.legend()
 
     fig.tight_layout()
-    fig.savefig(out_dir / f"{stats_clean}_subplots.eps", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_subplots.pdf", bbox_inches="tight")
 
 
     # plot all stations separately
@@ -196,7 +203,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
     ax.set_ylabel(stats)
 
     ax.legend()
-    fig.savefig(out_dir / f"{stats_clean}_all_stations.eps", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_all_stations.pdf", bbox_inches="tight")
 
 
 def main():
