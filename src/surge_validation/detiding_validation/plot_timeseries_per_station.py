@@ -122,8 +122,10 @@ def plot_diff_time_series_for_station(swl, st_id, station_dict=default_params.st
 def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=default_params.station_dict,
                                              st_time=None, en_time=None, img_dir=None, model_label_list=(),
                                              model_colors=("b", "r"),
-                                             run_freq_hours=6, ylim=None, linewidth=1, member_id=""):
+                                             run_freq_hours=6, ylim=None, linewidth=1, member_id="",
+                                             remove_ndays_mean=None):
     """
+    :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
     :param swl_list:
     :param st_id:
     :param station_dict:
@@ -150,7 +152,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
     st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
     st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
-    st_sel_obs = st_sel_obs.asfreq("60T")
+    st_sel_obs = st_sel_obs.asfreq("60T")["obs"]
 
     if len(st_sel_obs) == 0:
         logging.warning(f"No obs data for {st_id}, skipping it.")
@@ -171,14 +173,23 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
             continue
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-        to_plot = st_sel_mod.asfreq("60T")
-        to_plot.plot(y=["mod" + member_id, ],
-                     ax=axes[0], color=[model_color, ], legend=False, grid=True, linewidth=linewidth)
+        to_plot = st_sel_mod.asfreq("60T")["mod" + member_id]
 
-        model_label_to_series[model_label] = to_plot["mod" + member_id]
+        if remove_ndays_mean is not None:
+            to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
 
-    st_sel_obs.plot(y=["obs"], ax=axes[0], color=["k"], legend=False, linewidth=linewidth)
-    model_label_to_series["obs"] = st_sel_obs["obs"]
+        to_plot.plot(ax=axes[0], color=model_color, legend=False, grid=True, linewidth=linewidth)
+
+        model_label_to_series[model_label] = to_plot
+
+    # remove n-day rolling mean
+    if remove_ndays_mean is not None:
+        to_plot = st_sel_obs - st_sel_obs.rolling(timedelta(days=remove_ndays_mean)).mean()
+    else:
+        to_plot = st_sel_obs
+
+    to_plot.plot(ax=axes[0], color=["k"], legend=False, linewidth=linewidth)
+    model_label_to_series["obs"] = st_sel_obs
 
     same_mod = len(set(model_label_list)) == 1
 
@@ -406,7 +417,8 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
                                       station_dict=default_params.station_dict, st_time=None, en_time=None,
                                       run_freq_hours=12, linewidth=1,
                                       b2b_cutoff_hours=1000, member_id="",
-                                      split_seasons=None):
+                                      split_seasons=None,
+                                      remove_ndays_mean=None):
     """
     Use for comparing timeseries, more or less general interface
     :param split_seasons: dict {season_label: month_list}
@@ -451,7 +463,8 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
         run_freq_hours=run_freq_hours,
         linewidth=linewidth,
         station_dict=station_dict,
-        member_id=member_id
+        member_id=member_id,
+        remove_ndays_mean=remove_ndays_mean
     )
 
     kwargs_season = kwargs.copy()
