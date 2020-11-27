@@ -91,7 +91,7 @@ def main():
     # en_date = datetime(2017, 12, 31, 18)
 
     st_date = datetime(2020, 1, 1, 0)
-    en_date = datetime(2020, 3, 10, 12)
+    en_date = datetime(2020, 2, 29, 12)
 
     fc(station_dict=station_dict, st_date=st_date, en_date=en_date)
 
