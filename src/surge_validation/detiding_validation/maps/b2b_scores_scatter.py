@@ -80,7 +80,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
     # create grid of axes
     for i, score_id in enumerate(score_ids):
 
-        labels = mod_labels if only_one_model_label else mod_labels + [r"$\Delta$" + f"{mod_labels[1]} -\n  {mod_labels[0]}"]
+        labels = mod_labels if only_one_model_label else mod_labels + [r"$\Delta$" + f"[{mod_labels[1]} -\n  {mod_labels[0]}]"]
         for j, mod_label in enumerate(labels):
             ax = fig.add_subplot(gs[i, j], projection=projection)
 
