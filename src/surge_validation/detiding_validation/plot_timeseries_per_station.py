@@ -303,7 +303,6 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict):
     obs = lab_to_series["obs"].dropna()
 
     for lab in rows:
-
         logger.debug("\nobs\n%s\nmod\n%s", obs.head(), lab_to_series[lab].head())
         mod = lab_to_series[lab].copy()
 
