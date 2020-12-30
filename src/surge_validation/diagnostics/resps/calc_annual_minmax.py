@@ -10,6 +10,8 @@ import numpy as np
 
 from rpnpy.librmn import all as rmn
 
+from surge_validation.utils.log_utils import get_logger
+
 
 def get_coords_from_dir(a_dir: Path, nomvar="ETAS"):
     """
@@ -29,6 +31,7 @@ def get_coords_from_dir(a_dir: Path, nomvar="ETAS"):
 
 
 def main():
+    logger = get_logger(__name__)
     inp_dir = Path("/home/pat003/data/eccc-ppp4/maestro_hubs/resps/forecast/gridpt/prog_surge_tides_leveled")
     out_dir = Path("data/annual_min_max/")
 
@@ -43,7 +46,7 @@ def main():
 
     # TODO: redo 2010 without caching as cache contains not complete set (folder content changed since the first run)
     #
-    end_time = datetime(2010, limit_month, 1, tzinfo=pytz.utc)
+    end_time = datetime(2018, limit_month, 1, tzinfo=pytz.utc)
 
     nomvar = "ETAS"
     lon, lat, xrec, yrec, mask_rec = get_coords_from_dir(inp_dir, nomvar=nomvar)
@@ -63,7 +66,7 @@ def main():
 
         data = fst.get_b2b_data_from_dir(inp_dir, data_query=q).squeeze()
 
-        print(f"data.shape={data.shape}")
+        logger.debug(f"data.shape={data.shape}")
 
         the_min = data.min(axis=0)
         the_max = data.max(axis=0)
@@ -78,7 +81,7 @@ def main():
         data_rec = mask_rec.copy()
         t = datetime(y, limit_month, 1)
         t_rpn = RPNDate(mydate=t)
-        print(f"Assigning: time to the min-max = {t}")
+        logger.info(f"Assigning: time to the min-max = {t}")
         data_rec["datev"] = t_rpn
         data_rec["dateo"] = t_rpn.dateo
         data_rec["nomvar"] = nomvar
