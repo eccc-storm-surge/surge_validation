@@ -156,7 +156,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     if len(st_sel_obs) == 0:
         logging.warning(f"No obs data for {st_id}, skipping it.")
-        return
+        return {}
 
     fig = plt.figure(figsize=(8, 6))
     axes = [fig.gca()]
@@ -210,6 +210,85 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
     fig.savefig(str(img_dir / f"{st_id}.png"), dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return label_to_scores
+
+
+def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=default_params.station_dict,
+                                                  st_time=None, en_time=None,
+                                                  img_dir=None, model_label_list=(),
+                                                  model_colors=("b", "r"),
+                                                  run_freq_hours=6, ylim=None, linewidth=1, member_id="",
+                                                  remove_ndays_mean=None):
+    """
+    :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
+    :param swl_list:
+    :param st_id:
+    :param station_dict:
+    :param st_time:
+    :param en_time:
+    :param img_dir:
+    :param model_label_list:
+    :param model_colors:
+    :param run_freq_hours:
+    :param ylim:
+    :param linewidth:
+    :param member_id:
+    :return: a dictionary of {label: {gamma2: value, sigma: value}}
+    """
+    if isinstance(run_freq_hours, int):
+        run_freq_hours = {label: run_freq_hours for label in model_label_list}
+
+    model_label_to_color = OrderedDict(zip(model_label_list, model_colors))
+    model_label_to_series = OrderedDict()
+
+    fig = plt.figure(figsize=(8, 6))
+    axes = [fig.gca()]
+
+    for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
+        st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
+        st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] <= run_freq_hours[model_label]]
+
+        st_sel_mod.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
+        st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
+
+        if len(st_sel_mod) == 0:
+            logger.warning(f"No model data data for {st_id}, skipping")
+            return {}
+
+        st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
+        data_hourly = st_sel_mod.asfreq("60T")
+        # calculate the bias
+        to_plot = data_hourly["mod" + member_id] - data_hourly["obs"]
+
+        if remove_ndays_mean is not None:
+            to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
+
+        to_plot.plot(ax=axes[0], color=model_color, legend=False, grid=True, linewidth=linewidth)
+
+        model_label_to_series[model_label] = data_hourly["mod" + member_id]
+        model_label_to_series["obs"] = data_hourly["obs"]
+
+
+
+    same_mod = len(set(model_label_list)) == 1
+
+    lines_mod = [
+        Line2D([0], [0], color=c, label=f"{model_label}", linewidth=linewidth) for
+        c, model_label in zip(model_colors, model_label_list if not same_mod else [model_label_list[0], ])
+    ]
+    legend_handles = lines_mod
+
+    axes[0].set_xlim(st_time, en_time)
+    axes[0].legend(title=f"Bias (m) at {station_dict[st_id]}",
+                   handles=legend_handles)
+    axes[0].grid(which="minor", linestyle="dashed", linewidth=0.3)
+    if ylim is not None:
+        axes[0].set_ylim(*ylim)
+
+    label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
+
+    fig.savefig(str(img_dir / f"bias_{st_id}.png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
     return label_to_scores
 
@@ -352,15 +431,14 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
                 # deterministic
                 for m_col in mod_cols:
                     st_sel_mod.asfreq(plot_freq).plot(y=[m_col, ],
-                                              ax=axes[0], color=[model_color, ], legend=False, grid=True,
-                                              linewidth=linewidth)
+                                                      ax=axes[0], color=[model_color, ], legend=False, grid=True,
+                                                      linewidth=linewidth)
 
                     # biases
                     (st_sel_mod.asfreq(plot_freq)[m_col] - st_sel["obs"]).plot(
-                                            ax=axes[1], color=[model_color, ], legend=False, grid=True,
-                                            linewidth=linewidth)
+                        ax=axes[1], color=[model_color, ], legend=False, grid=True,
+                        linewidth=linewidth)
                     axes[1].set_title("Bias (mod-obs)")
-
 
             # only one system is scored
             if only_one_model_to_plot:
@@ -472,7 +550,14 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
     for st_id in station_dict:
 
         label_to_scores = plot_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
+
+        if len(label_to_scores) == 0:
+            continue
+
         station_scores[st_id] = label_to_scores
+
+        # plot biases as well
+        plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
 
         # do seasonal plots if requested
         if split_seasons is not None:
@@ -488,7 +573,8 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
                     month_to_season[m] = season
 
             # group by seasons
-            season_cols = [swl[io_manager.TIME_COL_NAME].map(lambda t: month_to_season.get(t.month, "unknown_season")) for swl in swl_list]
+            season_cols = [swl[io_manager.TIME_COL_NAME].map(lambda t: month_to_season.get(t.month, "unknown_season"))
+                           for swl in swl_list]
             swl_list_groups = [swl.groupby(by=season_col) for swl, season_col in zip(swl_list, season_cols)]
 
             for season, months in split_seasons.items():

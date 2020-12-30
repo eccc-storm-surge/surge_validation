@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pathlib import Path
 
 import pandas as pd
@@ -152,13 +153,13 @@ def get_b2b_data_from_dir_for_member_id(args):
 @get_cache(token="get_b2b_data_from_dir")
 def get_b2b_data_from_dir(src_dir: Path,
                           member_ids=None,
-                          data_query=None,
+                          data_query: OrderedDict = None,
                           data_mask=None):
     """
 
     :param src_dir:
     :param member_ids:
-    :param data_query:
+    :param data_query: should be an ordered dictionary for the caching to work properly
     :return: data[member_index, t, x, y]
     """
     if member_ids is None:
