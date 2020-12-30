@@ -77,7 +77,7 @@ def fc(station_dict=default_params.station_dict,
 
     compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
                      exp_id_list=exp_id_labels,
-                     img_dir=img_dir, qq_lead_hour_range=range(1, 1, 1),
+                     img_dir=img_dir, qq_lead_hour_range=range(12, 36, 12),
                      b2b_nhours=b2b_nhours,
                      score_plots_params=score_plots_params,
                      options=options, st_time=st_date, en_time=en_date,
