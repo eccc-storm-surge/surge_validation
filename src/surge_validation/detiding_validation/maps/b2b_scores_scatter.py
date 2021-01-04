@@ -176,3 +176,33 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
     # fig.tight_layout()
     fig.savefig(img, bbox_inches="tight", dpi=300)
     plt.close(fig)
+
+
+def save_scores_to_txt(station_scores: dict, labels, img_dir: Path):
+    """
+    Dump scores to txt file
+    :param station_scores: {station_id: {model_label: {score_label: score_value}}}
+    :param labels:
+    :param img_dir:
+    """
+
+    txt_dir = img_dir / "txt_scores"
+    txt_dir.mkdir(exist_ok=True)
+
+    station_ids = sorted(station_scores)
+    score_ids = sorted(station_scores[station_ids[0]][labels[0]])
+
+    index = pd.MultiIndex.from_product([station_ids, score_ids], names=["station", "score"])
+
+    data = {lbl: [] for lbl in labels}
+    for lbl in labels:
+        for st_id in station_ids:
+            for score_id in score_ids:
+                data[lbl].append(station_scores[st_id][lbl][score_id])
+
+    df = pd.DataFrame(index=index, data=data)
+
+    txt_file = txt_dir / "scores.csv"
+
+    with txt_file.open(mode="w") as f:
+        f.write(df.to_string())

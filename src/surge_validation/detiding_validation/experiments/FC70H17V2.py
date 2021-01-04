@@ -7,13 +7,18 @@ from datetime import datetime
 
 from surge_validation.detiding_validation.config.default_params import get_color_list
 from ..config import default_params
-from ..maps.b2b_scores_scatter import plot_score_maps
+from ..maps.b2b_scores_scatter import plot_score_maps, save_scores_to_txt
 from ..plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
 from ..surge_stats_entry import compare_2_simulations, compare_n_simulations
 import numpy as np
 
 EXP_ID = "FC70H17V2"
 exp_label = f"rdsps_fc_{EXP_ID}"
+
+
+
+
+
 
 
 def compare_forecast(station_dict=default_params.station_dict,
@@ -117,6 +122,8 @@ def compare_forecast(station_dict=default_params.station_dict,
 
         plot_score_maps(station_scores, labels, exp_id_to_path, img_dir=img_dir,
                         plot_params=options)
+
+        save_scores_to_txt(station_scores, labels, img_dir)
 
         # plot score maps per season
         img_dir_season = img_dir / "seasonal_maps"
