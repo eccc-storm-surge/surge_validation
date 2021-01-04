@@ -10,13 +10,10 @@ from rpnpy.rpndate import RPNDate
 
 from surge_validation.utils.cache_utils import get_cache
 
-import logging
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 # disable verbose output
+from surge_validation.utils.log_utils import get_logger
+
 rmn.fstopt(rmn.FSTOP_MSGLVL, rmn.FSTOPI_MSG_FATAL)
 
 
@@ -94,7 +91,7 @@ def get_b2b_data_from_dir_parallel(args):
 
 
 def get_b2b_data_from_dir_for_member_id(args):
-
+    logger = get_logger(__name__)
     # TODO: check if there is no issues with the order of the data,
     # performance => do not duplicate paths
 
@@ -136,7 +133,8 @@ def get_b2b_data_from_dir_for_member_id(args):
         else:
             df["field"] = [rmn.fstluk(k)["d"][data_mask] for k in df["key"]]
 
-        logger.debug(f"(fst): read {len(df)} records from {fpath} into memory")
+        if len(df) > 0:
+            logger.debug(f"(fst): read {len(df)} records from {fpath} into memory")
 
         df_list.append(df)
 
