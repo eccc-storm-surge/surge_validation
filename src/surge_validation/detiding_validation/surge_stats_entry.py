@@ -15,6 +15,7 @@ from .qq_plot import qqplot
 from .verification_stats.calc_stats_with_obs import stde, gamma, stde_obs, gamma_varobsallvhour
 import matplotlib.pyplot as plt
 from datetime import datetime
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -69,6 +70,8 @@ def plot_scores_generalize(ax, lbl_to_series: dict,
                            ylimits=None):
     """
     Plot scores as function of forcast hour
+    :param ylimits:
+    :param lbl_to_color:
     :param lbl_to_series: Ordered dict {label: data}
     :param show_avg_diff: True/False whether show or not the average difference between the models
     :param ax:
@@ -96,6 +99,20 @@ def plot_scores_generalize(ax, lbl_to_series: dict,
                          ax=ax,
                          sharex=shared_ax, sharey=None,
                          rot=45, label=lbl, ylim=ylimits)
+
+        # check if confidence intervals are present, plot them if they are
+        cname_ci_min = None
+        cname_ci_max = None
+        for cname in series.columns:
+            if cname.endswith("ci_min"):
+                cname_ci_min = cname
+            elif cname.endswith("ci_max"):
+                cname_ci_max = cname
+
+        if cname_ci_min is not None:
+            ax.fill_between(series.index, series[cname_ci_min], series[cname_ci_max], alpha=0.1, color=color)
+            logger.info(f"Will show confidence intervals for: {lbl}, {col_name} ")
+            # raise Exception
 
         # display averaged difference for all forecast hours if requested
         if show_avg_diff and idx > 0:
@@ -163,7 +180,7 @@ def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
     return ax
 
 
-def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
+def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
                           station_dict=default_params.station_dict,
                           member_id="",
                           forecast_hour_tick_multiplier=24,
@@ -171,17 +188,20 @@ def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
                           custom_rc_params=None,
                           show_avg_diff=True,
                           qq_lead_hour_range=range(244), max_lead_hour=None):
+
     logging.info("Start compare_n_simulations ...")
+
+    nbootstrap_default = 100
+
     if custom_rc_params is None:
         custom_rc_params = {}
 
     img_dir.mkdir(exist_ok=True, parents=True)
 
-    # read the data into memory
-    lbl_to_data = OrderedDict([
-        (lbl, io_manager.read_wl_station_data(path, station_dict=station_dict, max_lead_hour=max_lead_hour))
-        for lbl, path in lbl_to_path.items()
-    ])
+    # select only up to the lead hour required
+    if max_lead_hour is not None:
+        lbl_to_data = {key: data[data[io_manager.VALIDH_COL_NAME] <= max_lead_hour]
+                       for key, data in lbl_to_data.items()}
 
     # set font size
     if custom_rc_params is None:
@@ -227,16 +247,27 @@ def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
         "_gamma_varobsallvhour": gamma_varobsallvhour
     }
 
+    stats_functions_params = {
+        "_stde": {"nbootstrap": nbootstrap_default,
+                  "alpha_ci": 0.4,
+                  "legend_title": "60% conf. interval"},
+        "_gamma": {"nbootstrap": nbootstrap_default,
+                   "alpha_ci": 0.4,
+                   "legend_title": "60% conf. interval"},
+        "_stde_obs": {},
+        "_gamma_varobsallvhour": {"nbootstrap": nbootstrap_default,
+                                  "alpha_ci": 0.4,
+                                  "legend_title": "60% conf. interval"}
+    }
+
     member_col_index = 0
     current_station_ids = data_any["station_id"].drop_duplicates()
     for suffix, afunc in stats_functions.items():
         col_names = io_manager.get_model_column_names(data_any, suffix=suffix)
 
         lbl_to_stats = OrderedDict([
-            (lbl, afunc(data, stids_not_overall=stids_not_overall)) for lbl, data in lbl_to_data.items()
+            (lbl, afunc(data, stids_not_overall=stids_not_overall, **stats_functions_params[suffix])) for lbl, data in lbl_to_data.items()
         ])
-
-        any_stats = next(v for v in lbl_to_stats.values())
 
         # determine number of rows in the panel plot
         if select_stations is None:
@@ -269,14 +300,13 @@ def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
 
             if shared_ax is None:
                 shared_ax = ax
-                xlims = (any_stats[0].index.min(), any_stats[0].index.max())
 
             if len(col_names) > 1:
                 logging.warning(f"Using member: {col_names[0]}")
 
             logger.debug(f"i={i}, st_id={st_id}")
 
-            # get stats for the current station
+            # get stats for the current station, hence stats[0]
             lbl_to_series = OrderedDict([
                 (lbl, stats[0].xs(st_id, level="station_id")) for lbl, stats in lbl_to_stats.items()
             ])
@@ -308,10 +338,18 @@ def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
                                title="All stations", show_avg_diff=show_avg_diff)
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
-        ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4), borderaxespad=0.)
 
-        st_time = data_any[io_manager.TIME_COL_NAME].min()
-        en_time = data_any[io_manager.TIME_COL_NAME].max()
+        legend_title = stats_functions_params[suffix].get("legend_title", None)
+        ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4),
+                  borderaxespad=0.,
+                  title=legend_title)
+
+        # get min/max origin times for titles
+        t_origin = (data_any[io_manager.TIME_COL_NAME] - pd.TimedeltaIndex(data_any[io_manager.VALIDH_COL_NAME],
+                                                                           unit="hour"))
+        st_time = t_origin.min()
+        en_time = t_origin.max()
+
         period_s = f"{st_time:%Y%m%d%H}-{en_time:%Y%m%d%H}"
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
@@ -334,7 +372,7 @@ def compare_n_simulations(lbl_to_path: dict, lbl_to_color: dict, img_dir,
                                ylimits=default_params.vname_to_limits[suffix[1:]])
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
-        ax.legend(loc="upper left")
+        ax.legend(loc="upper left", title=stats_functions_params[suffix].get("legend_title", None))
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
         if max_lead_hour is not None:
@@ -535,6 +573,59 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         plt.close(fig)
 
     logging.info("Finished compare_2_simulations ...")
+
+
+def aggregate_in_time(lbl_to_data, agg_hours=0):
+    """
+    assign data within [vh-agg_hours, vh+agg_hours] to correspond to vh.
+
+    so that the valid hour changes
+    from [0, 1, 2, 3, ...]
+    to [agg_hours, 2 * agg_hours, 3 * agg_hours, ...]
+    """
+
+    if agg_hours == 0:
+        return lbl_to_data
+
+    res = OrderedDict()
+
+    for lbl, data in lbl_to_data.items():
+
+        res[lbl] = data.copy()
+
+        vh_orig = res[lbl][io_manager.VALIDH_COL_NAME]
+
+        res[lbl].loc[:, io_manager.VALIDH_COL_NAME] = (res[lbl].loc[:, io_manager.VALIDH_COL_NAME] // agg_hours) * agg_hours
+
+        max_vh = (vh_orig.max() // agg_hours) * agg_hours
+
+        # select so that each interval is represented by the same number of points (the rest is discarded)
+        res[lbl] = res[lbl][res[lbl][io_manager.VALIDH_COL_NAME] < max_vh]
+
+    return res
+
+
+def get_b2b_timeseries(lbl_to_data: dict, b2b_nhours: dict, min_valid_hour=0):
+    """
+    convert data to timeseries by removing overlapping sections
+    :param min_valid_hour: minimum valid hour to consider for concatenation (inclusive)
+    :param lbl_to_data:
+    :param n_b2b_hours:
+
+    :returns {label: {stationid: timeseries}}
+    """
+
+    lbl_to_station_to_ts = {}
+
+    for lbl, exp_data in lbl_to_data.items():
+        lbl_to_station_to_ts[lbl] = {}
+        for st_id, st_data in exp_data.groupby(io_manager.STID_COL_NAME):
+            ts = st_data[st_data[io_manager.VALIDH_COL_NAME] <= b2b_nhours[lbl]].sort_values(io_manager.TIME_COL_NAME)
+            ts = ts[ts[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
+            ts = ts.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="first").set_index(io_manager.TIME_COL_NAME)
+            lbl_to_station_to_ts[lbl][st_id] = ts
+
+    return lbl_to_station_to_ts
 
 
 def compare_rdsps_2018(station_dict=default_params.station_dict):

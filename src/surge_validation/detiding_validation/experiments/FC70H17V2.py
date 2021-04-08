@@ -5,7 +5,10 @@ from multiprocessing import Process
 from pathlib import Path
 from datetime import datetime
 
+from surge_validation.detiding_validation import io_manager, surge_stats_entry
 from surge_validation.detiding_validation.config.default_params import get_color_list
+from surge_validation.spectral_plots import plot_power_spectra
+from surge_validation.tidal_constituents import ttide_plot_amplitudes_and_phases_at_stations
 from ..config import default_params
 from ..maps.b2b_scores_scatter import plot_score_maps, save_scores_to_txt
 from ..plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
@@ -14,11 +17,6 @@ import numpy as np
 
 EXP_ID = "FC70H17V2"
 exp_label = f"rdsps_fc_{EXP_ID}"
-
-
-
-
-
 
 
 def compare_forecast(station_dict=default_params.station_dict,
@@ -79,13 +77,25 @@ def compare_forecast(station_dict=default_params.station_dict,
 
     exp_id_to_color = OrderedDict(zip(exp_id_to_path, get_color_list()))
 
+    # read data into memory to be re-used
+    lbl_to_data = OrderedDict([
+        (lbl, io_manager.read_wl_station_data(path, station_dict=station_dict, max_lead_hour=None))
+        for lbl, path in exp_id_to_path.items()
+    ])
+
     if options.get("calculate_scores", True):
-        compare_n_simulations(exp_id_to_path, exp_id_to_color, img_dir, station_dict=station_dict,
-                              forecast_hour_tick_multiplier=score_plots_params["forecast_hour_tick_multiplier"],
-                              max_lead_hour=score_plots_params.get("max_lead_hour", None),
-                              custom_rc_params=plot_params, n_subplot_cols=n_subplot_cols,
-                              qq_lead_hour_range=qq_lead_hour_range, show_avg_diff=len(np.unique(labels)) > 1,
-                              member_id=member_id, select_stations=list(station_dict))
+        # assign close hours to the same lead time +/- agg_hour
+        agg_periods = score_plots_params.get("agg_hours", [0, ])
+
+        for agg_hour in agg_periods:
+            lbl_to_data_agg = surge_stats_entry.aggregate_in_time(lbl_to_data=lbl_to_data, agg_hours=agg_hour)
+            agg_img_dir = img_dir / f"agg_{agg_hour}hrs"
+            compare_n_simulations(lbl_to_data_agg, exp_id_to_color, agg_img_dir, station_dict=station_dict,
+                                  forecast_hour_tick_multiplier=score_plots_params["forecast_hour_tick_multiplier"],
+                                  max_lead_hour=score_plots_params.get("max_lead_hour", None),
+                                  custom_rc_params=plot_params, n_subplot_cols=n_subplot_cols,
+                                  qq_lead_hour_range=qq_lead_hour_range, show_avg_diff=len(np.unique(labels)) > 1,
+                                  member_id=member_id, select_stations=list(station_dict))
 
 
     # plot time series
@@ -97,9 +107,9 @@ def compare_forecast(station_dict=default_params.station_dict,
         else:
             b2b_cutoff_hours_token = ""
 
-        split_seasons = options.get("b2b_split_seasons", None)
+        split_seasons = options.get("b2b_split_seasons", {})
 
-        if split_seasons is not None:
+        if len(split_seasons) > 0:
             # sanity check
             months = []
             for season, mlist in split_seasons.items():
@@ -109,7 +119,13 @@ def compare_forecast(station_dict=default_params.station_dict,
 
         ts_plots_dir = img_dir / f"timeseries_b2b_{b2b_cutoff_hours_token}"
         ts_plots_dir.mkdir(exist_ok=True, parents=True)
-        station_scores, season_to_stid_to_score = compare_sims_timeseries_back2back(labels, exp_id_to_path, exp_id_to_color,
+
+        # cleanup old plots
+        for f in ts_plots_dir.rglob("*"):
+            if f.is_file():
+                f.unlink()
+
+        station_scores, season_to_stid_to_score = compare_sims_timeseries_back2back(lbl_to_data, exp_id_to_color,
                                                                                     ts_plots_dir,
                                                                                     station_dict=station_dict,
                                                                                     st_time=st_time, en_time=en_time,
@@ -142,6 +158,31 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                 station_dict=station_dict,
                                                 st_time=st_time, en_time=en_time,
                                                 linewidth=0.3, member_id=member_id)
+
+    plot_spectra = options.get("plot_spectra", True)
+    plot_tide_constituents = options.get("plot_tide_constituents", False)
+
+    # prepare timeseries if any of the spectra or tide plots are requested
+    lbl_to_station_to_ts = {}
+    if plot_spectra or plot_tide_constituents:
+        lbl_to_station_to_ts = surge_stats_entry.get_b2b_timeseries(lbl_to_data=lbl_to_data,
+                                                                    b2b_nhours=b2b_nhours)
+
+    # plot power spectra
+    if plot_spectra:
+        spectra_plots_dir = img_dir / "spectra"
+        plot_power_spectra.plot_using_cross_spectra(img_dir=spectra_plots_dir,
+                                                    lbl_to_station_to_ts=lbl_to_station_to_ts,
+                                                    lbl_to_color=exp_id_to_color,
+                                                    station_dict=station_dict)
+
+    # plot constituents calculated using ttide
+    if plot_tide_constituents:
+        tide_plots_dir = img_dir / "ttide-analysis"
+        ttide_plot_amplitudes_and_phases_at_stations.plot_ttide_tide_spectra(
+            lbl_to_station_to_ts, img_dir=tide_plots_dir, lbl_to_color=exp_id_to_color,
+            station_dict=station_dict
+        )
 
 
 def main():

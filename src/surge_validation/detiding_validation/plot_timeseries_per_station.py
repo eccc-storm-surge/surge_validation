@@ -4,12 +4,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib import colors
 from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 
 from surge_validation.detiding_validation import io_manager
 from surge_validation.detiding_validation.config import default_params
 import numpy as np
+
+from surge_validation.utils.bokeh_plots import time_series
+from surge_validation.utils.strutils import stname_to_fname
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -209,7 +213,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
-    fig.savefig(str(img_dir / f"{st_id}.png"), dpi=300, bbox_inches="tight")
+    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname(station_dict[st_id])}.png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
     return label_to_scores
 
@@ -488,8 +492,7 @@ def main(station_dict=default_params.station_dict):
                                           img_dir=detiding_plots_dir)
 
 
-def compare_sims_timeseries_back2back(data_labels: list = None,
-                                      data_paths: dict = None, data_colors: dict = None,
+def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = None,
                                       plots_dir: Path = None,
                                       station_dict=default_params.station_dict, st_time=None, en_time=None,
                                       run_freq_hours=12, linewidth=1,
@@ -503,8 +506,6 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
     :param run_freq_hours: if dict {data_label: run_freq_hours}
     :param linewidth:
     :param b2b_cutoff_hours: only plot first b2b_cutoff_hours
-    :param data_labels:
-    :param data_paths: Paths to the dat files prepared by loadprogs_python
     :param data_colors:
     :param plots_dir:
     :param station_dict:
@@ -518,9 +519,10 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
     if not plots_dir.is_dir():
         plots_dir.mkdir(parents=True, exist_ok=True)
 
-    swl_list = [io_manager.read_wl_station_data(data_paths[label], station_dict=station_dict) for label in data_labels]
-    model_labels = data_labels
-    model_colors = [data_colors[label] for label in data_labels]
+    model_labels = [lbl for lbl in lbl_to_data]
+    swl_list = [lbl_to_data[lbl] for lbl in model_labels]
+
+    model_colors = [data_colors[label] for label in model_labels]
 
     if b2b_cutoff_hours is not None:
         if st_time is not None:
@@ -545,10 +547,13 @@ def compare_sims_timeseries_back2back(data_labels: list = None,
     )
 
     kwargs_season = kwargs.copy()
+    kwargs_bokeh = kwargs.copy()
 
     for st_id in station_dict:
 
         label_to_scores = plot_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
+        time_series.plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores, img_dir=plots_dir,
+                                                             **kwargs)
 
         if len(label_to_scores) == 0:
             continue

@@ -150,9 +150,10 @@ def get_color_list():
 
     # put blue, red, others in order
 
-    others = [c for c in colors.TABLEAU_COLORS if not ("blue" in c or "red" in c)]
-    first = [c for c in colors.TABLEAU_COLORS if "blue" in c]
-    second = [c for c in colors.TABLEAU_COLORS if "red" in c]
+    first = [c for c in colors.TABLEAU_COLORS if "blue" in c][:1]
+    
+    second = [c for c in colors.TABLEAU_COLORS if "red" in c][:1]
+    others = [c for c in colors.TABLEAU_COLORS if c not in first + second]
 
     return first + second + others
 
