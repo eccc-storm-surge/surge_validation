@@ -5,13 +5,12 @@ import re
 from surge_validation.detiding_validation.config import default_params
 import pandas as pd
 
-
-
 TIME_COL_NAME = "time"
 VALIDH_COL_NAME = "valid_hour"
 STID_COL_NAME = "station_id"
 LAT_COL_NAME = "lat"
 LON_COL_NAME = "lon"
+OBS_COL_NAME = "obs"
 
 # indices of the columns in the input file
 INFILE_STID_INDEX = 1
@@ -52,7 +51,7 @@ def read_wl_station_data(data_store, station_dict=None,
                                  4: lambda s: datetime.strptime(s, "%Y%m%d%H")})
     if data_store_p.is_file():
 
-        col_names = [VALIDH_COL_NAME, STID_COL_NAME, LAT_COL_NAME, LON_COL_NAME, TIME_COL_NAME, "obs", ]
+        col_names = [VALIDH_COL_NAME, STID_COL_NAME, LAT_COL_NAME, LON_COL_NAME, TIME_COL_NAME, OBS_COL_NAME, ]
 
         if len(df.columns) - len(col_names) > 1:
             col_names = col_names + [f"mod{i:03d}" for i in range(len(df.columns) - len(col_names))]

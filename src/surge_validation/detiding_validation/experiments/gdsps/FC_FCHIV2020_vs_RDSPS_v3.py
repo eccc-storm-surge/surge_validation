@@ -11,7 +11,8 @@ from datetime import datetime
 
 from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
 
-EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_V3"
+# EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_V3"
+EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_testing"
 
 station_dict = default_params.station_dict
 
@@ -46,7 +47,8 @@ def fc(station_dict=default_params.station_dict,
 
     score_plots_params = {
         "forecast_hour_tick_multiplier": 24,
-        "max_lead_hour": 243
+        "max_lead_hour": 243,
+        "agg_hours": [0, 12]
     }
 
     b2b_split_seasons = {
@@ -55,11 +57,14 @@ def fc(station_dict=default_params.station_dict,
 
     options = {
         "do_full_forecast_timeseries": False,
-        "calculate_scores": True,
+        "calculate_scores": False,
+        "do_b2b_timeseries": False,
         "b2b_split_seasons": b2b_split_seasons,
         "score_map_figsize": (14, 5.5),
         "score_map_marker_size": 12,
-        "score_map_colorbar_fraction": "2%"
+        "score_map_colorbar_fraction": "2%",
+        "plot_spectra": False,
+        "plot_tide_constituents": True
     }
 
     default_params.vname_to_limits = {
@@ -77,7 +82,7 @@ def fc(station_dict=default_params.station_dict,
 
     compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
                      exp_id_list=exp_id_labels,
-                     img_dir=img_dir, qq_lead_hour_range=range(12, 36, 12),
+                     img_dir=img_dir, qq_lead_hour_range=range(12, 12, 12),
                      b2b_nhours=b2b_nhours,
                      score_plots_params=score_plots_params,
                      options=options, st_time=st_date, en_time=en_date,
