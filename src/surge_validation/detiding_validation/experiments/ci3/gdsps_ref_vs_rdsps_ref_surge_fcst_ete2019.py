@@ -53,7 +53,8 @@ def fc(station_dict=default_params.station_dict,
         "forecast_hour_tick_multiplier": 24,
         "max_lead_hour": 240,
         "min_lead_hour": 0,
-        "agg_hours": [0, 12]
+        "agg_hours": [0, 12],
+        "single_panel_figsize": (7.5, 5.5)
     }
 
     b2b_split_seasons = {
