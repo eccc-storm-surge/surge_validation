@@ -107,8 +107,8 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     # plotting =====================
     for station_id, tide_props_mod in all_tide_props_mod.items():
 
-        fig = plt.figure(figsize=(10, 10))
-        gs = GridSpec(3, 1)
+        fig = plt.figure(figsize=(10, 8), dpi=96)
+        gs = GridSpec(3, 1, hspace=0.3)
 
         ax_amp = fig.add_subplot(gs[0, 0])
         ax_amp.set_title(f"{station_dict.get(station_id, station_id)}")
@@ -182,24 +182,29 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
         ax_amp.legend()
 
-        img_file = img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}.png"
-        fig.savefig(img_file, bbox_inches="tight")
+        img_file = img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}.pdf"
+        fig.savefig(img_file, bbox_inches="tight", transparent=True)
         plt.close(fig)
 
 
 def tidecon_to_dataframe(tidecon: TTideCon):
     logger = log_utils.get_logger(__name__)
+
+    # change endiannes if needed
+    # fu is read from file
+    fu = tidecon["fu"]
+    if fu.dtype.byteorder == ">":
+        # force native byteorder
+        fu = tidecon["fu"].byteswap().newbyteorder()
+
     df = pd.DataFrame({
         "nameu": tidecon["nameu"],
-        "fu": tidecon["fu"].byteswap().newbyteorder() * 24,
+        "fu": fu * 24,
         "amp": tidecon["tidecon"][:, 0],
         "amp_err": tidecon["tidecon"][:, 1],
         "pha": tidecon["tidecon"][:, 2],
         "pha_err": tidecon["tidecon"][:, 3],
 
     })
-
-    logger.debug(df.head())
-    logger.debug(df.dtypes)
 
     return df.sort_values("fu").set_index("nameu")

@@ -14,11 +14,13 @@ from ..utils.crosspec import crosspec
 from ..detiding_validation import io_manager
 import numpy as np
 
+from ..utils.strutils import stname_to_fname2
+
 
 def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                              lbl_to_color: dict,
                              station_dict=default_params.station_dict,
-                             fs=timedelta(hours=1)):
+                             fs=timedelta(hours=1), cpd_max=5):
     """
     This plots spectra for stations using function developed by Natacha Bernier
     (see comments in utils/crosspec.py)
@@ -35,7 +37,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     # get list off all stations
     all_stations = set()
 
-    m_fraction = 0.25
+    # m_fraction = 0.25
 
     for lbl, station_to_ts in lbl_to_station_to_ts.items():
         all_stations.update({s for s in station_to_ts})
@@ -46,7 +48,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
     for station_id in all_stations:
         logger.info(f"Plotting power spectre for {station_id}")
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8, 6))
         ax = fig.gca()
         assert isinstance(ax, Axes)
 
@@ -59,11 +61,16 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
             # calculate power spectra
             if lbl_idx == 0:
                 ts_obs = lbl_to_station_to_ts[lbl][station_id][io_manager.OBS_COL_NAME].asfreq(fs)
-                m = int(m_fraction * len(ts_obs))
                 x = np.where(ts_obs.isna(), 0, ts_obs.values)
                 # freq, px_obs = crosspec(m, x)
-                freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nperseg=m)
-                obs_lines = ax.semilogy(freq * freq_mul, px_obs, color="k", linewidth=2, label="Obs")
+                freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(0.5*len(x)))
+
+                freq = freq * freq_mul
+                sel = freq <= cpd_max
+                px_obs = px_obs[sel]
+                freq = freq[sel]
+
+                obs_lines = ax.semilogy(freq.copy(), px_obs.copy(), color="k", linewidth=2, label="Obs")
                 obs_artists.append(obs_lines[0])
 
                 # freq_1, px_1 = signal.csd(x, x, fs=1. / fs.total_seconds(), scaling="spectrum", nperseg=m, detrend=False)
@@ -74,12 +81,16 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                     continue
 
                 ts = lbl_to_station_to_ts[lbl][station_id][c].asfreq(fs)
-                m = int(m_fraction * len(ts))
                 # freq, px = crosspec(m, ts.values)
                 x = np.where(ts.isna(), 0, ts.values)
-                freq, px = signal.csd(x, x, fs=1. / fs.total_seconds(), nperseg=m)
+                freq, px = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(0.5*len(x)))
                 # print(np.real(px), np.imag(px))
-                mod_lines = ax.semilogy(freq * freq_mul, px, color=lbl_to_color[lbl], label=lbl)
+
+                freq = freq * freq_mul
+                sel = freq <= cpd_max
+                px = px[sel]
+                freq = freq[sel]
+                mod_lines = ax.semilogy(freq.copy(), px.copy(), color=lbl_to_color[lbl], label=lbl)
                 mod_artists.append(mod_lines[0])
 
         ax.legend(handles=obs_artists + mod_artists)
@@ -89,6 +100,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
         ax.set_ylabel(f"m$^2$ / Hz")
         # plt.show()
 
-        fig.savefig(img_dir / f"{station_id}_csd.png")
+        fig.savefig(img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}_csd.png",
+                    bbox_inches="tight")
         plt.close(fig)
 

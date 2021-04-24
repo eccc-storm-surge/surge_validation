@@ -1,6 +1,8 @@
 from collections import OrderedDict
 import numpy as np
 
+
+
 station_dict = OrderedDict([
     ("8443970", "Boston, MA"),
     ("8418150", "Portland, ME"),
@@ -141,6 +143,11 @@ score_clevs = {
 }
 
 
+class OptionNames(object):
+    IGNORE_EDGE_FORECASTS = "ignore_edge_forecasts"
+
+
+
 def get_color_list():
     """
     get list of colors in the conventional order [b, r, ....]
@@ -157,3 +164,12 @@ def get_color_list():
 
     return first + second + others
 
+
+def set_default_plot_params():
+    import matplotlib.pyplot as plt
+    plt.rcParams["font.size"] = 13
+    fontweight = "semibold"
+    plt.rcParams["font.weight"] = fontweight
+    plt.rcParams["axes.titleweight"] = fontweight
+    plt.rcParams["axes.labelweight"] = fontweight
+    plt.rcParams["figure.titleweight"] = fontweight

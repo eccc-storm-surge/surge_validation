@@ -8,35 +8,37 @@ from pathlib import Path
 from surge_validation.detiding_validation import io_manager
 from surge_validation.detiding_validation.config import default_params
 from datetime import datetime
+import pandas as pd
 
+from surge_validation.detiding_validation.config.default_params import OptionNames
 from surge_validation.detiding_validation.experiments.validation_experiment_base import compare_forecast
 
 # EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_V3"
-EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_testing"
 
-station_dict = default_params.station_dict
 
 # generalized plotting to several simulations
+from surge_validation.utils import log_utils
 
 
 def fc(station_dict=default_params.station_dict,
        st_date=None,
-       en_date=None):
+       en_date=None,
+       exp_id=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/gdsps/")
+    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/ci3/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
 
-    label = f"{EXP_ID}_{st_s}_{en_s}"
-    img_dir = Path(f"data/plots/{label}")
+    label = f"{exp_id}_{st_s}_{en_s}"
+    img_dir = Path(f"data/plots/ci3_seasonal_cycles/{label}")
 
     exp_id_to_path = OrderedDict([
-        ("RDSPS (FC, TWL)",
-            next((inp_data_root / f"HIV2020_fc_V3").rglob("data_for_scoring_rdsps_FC_fc_H2020_cycles_twl_*")) / "surge_rdsps_FC_fc_H2020_cycles_twl_V3.dat"),
-        ("GDSPS (FC, TWL)",
-            next((inp_data_root / f"HIV2020_fc_V3").rglob("data_for_scoring_gdsps_FC_fc_H2020_cycles_twl_*")) / "surge_gdsps_FC_fc_H2020_cycles_twl_V3.dat"),
+        ("RDSPS (FCST-REF, Surge)",
+            next((inp_data_root / "rdsps").rglob(f"data_for_scoring_*rdsps*_surge_ref_*{st_s}_{en_s}/surge*.dat"))),
+        ("GDSPS (FCST-NEW, Surge)",
+            next((inp_data_root / "gdsps").rglob(f"data_for_scoring_*gdsps*_surge_new_*{st_s}_{en_s}/surge*.dat"))),
     ])
 
     exp_id_labels = list(exp_id_to_path)
@@ -47,24 +49,32 @@ def fc(station_dict=default_params.station_dict,
 
     score_plots_params = {
         "forecast_hour_tick_multiplier": 24,
-        "max_lead_hour": 243,
+        "max_lead_hour": 240,
+        "min_lead_hour": 0,
         "agg_hours": [0, 12]
     }
 
     b2b_split_seasons = {
-        f"{t:%b}": (t.month, ) for t in [datetime(2001, m, 1) for m in range(1, 3)]
+        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="m")
     }
 
     options = {
         "do_full_forecast_timeseries": False,
-        "calculate_scores": False,
-        "do_b2b_timeseries": False,
+        "calculate_scores": True,
+        "do_b2b_timeseries": True,
         "b2b_split_seasons": b2b_split_seasons,
-        "score_map_figsize": (14, 5.5),
-        "score_map_marker_size": 12,
+        "score_map_figsize": (13.5, 5.5),
+        "score_map_marker_size": 20,
         "score_map_colorbar_fraction": "2%",
-        "plot_spectra": False,
-        "plot_tide_constituents": True
+        "plot_spectra": True,
+        "plot_tide_constituents": True,
+        "b2b_min_lead_hour": 0,
+        # number of forecasts to ignore to avoid transients from filtering
+        OptionNames.IGNORE_EDGE_FORECASTS: {
+            "beg": 3,
+            "end": 3
+        }
+
     }
 
     default_params.vname_to_limits = {
@@ -95,9 +105,13 @@ def main():
     # en_date = datetime(2017, 12, 31, 18)
 
     st_date = datetime(2020, 1, 1, 0)
-    en_date = datetime(2020, 2, 29, 12)
+    en_date = datetime(2020, 4, 10, 12)
+    EXP_ID = "GDSPS_NEW_vs_RDSPS_REF_FCST_HIV2020_SURGE_BV3"
 
-    fc(station_dict=station_dict, st_date=st_date, en_date=en_date)
+    logger = log_utils.get_logger(__name__)
+    logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)
+    station_dict = default_params.station_dict.copy()
+    fc(station_dict=station_dict, st_date=st_date, en_date=en_date, exp_id=EXP_ID)
 
 
 if __name__ == '__main__':

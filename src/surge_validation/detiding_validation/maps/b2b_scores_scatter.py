@@ -29,15 +29,18 @@ def get_stid_to_coord_mapping(data_path) -> pd.DataFrame:
                           converters={1: str}
                           )  # the file contains the station id lat and lon
 
-    df_meta.columns = [
-        io_manager.STID_COL_NAME,
-        io_manager.LAT_COL_NAME,
-        io_manager.LON_COL_NAME
-    ]
+    column_name_map = {
+        io_manager.INFILE_STID_INDEX: io_manager.STID_COL_NAME,
+        io_manager.INFILE_LAT_INDEX: io_manager.LAT_COL_NAME,
+        io_manager.INFILE_LON_INDEX: io_manager.LON_COL_NAME
+    }
 
     # group by station id the coordinates
-    df_meta = df_meta.groupby(df_meta[io_manager.STID_COL_NAME]).mean()
+    # df_meta = df_meta.groupby(df_meta[io_manager.STID_COL_NAME]).mean()
 
+    df_meta.rename(column_name_map, axis="columns", inplace=True)
+    df_meta.drop_duplicates(subset=[io_manager.STID_COL_NAME], inplace=True)
+    df_meta.set_index(io_manager.STID_COL_NAME, inplace=True)
     logger.debug("\n%s\n", df_meta.head())
     return df_meta
 
@@ -45,19 +48,29 @@ def get_stid_to_coord_mapping(data_path) -> pd.DataFrame:
 def plot_score_maps(station_to_scores, mod_labels, data_paths,
                     img_dir: Path, map_label="",
                     plot_params=None):
-
     if plot_params is None:
         plot_params = {}
 
     img_dir.mkdir(exist_ok=True, )
-    station_info = get_stid_to_coord_mapping(data_path=data_paths[mod_labels[0]])
+
+    station_info_list = [get_stid_to_coord_mapping(data_path=data_paths[mod_label]) for mod_label in mod_labels]
+    station_info = pd.concat(station_info_list, axis=1, join="inner")
+
+    # remove duplicated columns
+    station_info = station_info.loc[:, ~station_info.columns.duplicated()]
+
     score_ids = ["gamma2", "sigma"]
     score_labels = {
-        "gamma2": r"$\gamma^2$",
-        "sigma": r"$\sigma_{\varepsilon}$"
+        "gamma2": r"\gamma^2",
+        "sigma": r"\sigma_{{\varepsilon}}"
     }
 
-    projection = ccrs.PlateCarree()
+    score_units = {
+        "gamma2": r"-",
+        "sigma": r"m"
+    }
+
+    projection = plot_params.get("score_map_projection", ccrs.PlateCarree())
 
     only_one_model_label = len(set(mod_labels)) == 1
 
@@ -73,19 +86,19 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
     else:
         figsize = plot_params["score_map_figsize"]
 
-    fig = plt.figure(figsize=figsize)
+    dpi = plot_params.get("score_map_dpi", 96)
+
+    fig = plt.figure(figsize=figsize, dpi=dpi)
 
     val_mean = None
 
+    labels = mod_labels if only_one_model_label else mod_labels + \
+                                                     [r"$\Delta$" + f"[{mod_labels[1]} -\n  {mod_labels[0]}]"]
     # create grid of axes
     for i, score_id in enumerate(score_ids):
 
-        labels = mod_labels if only_one_model_label else mod_labels + [r"$\Delta$" + f"[{mod_labels[1]} -\n  {mod_labels[0]}]"]
         for j, mod_label in enumerate(labels):
             ax = fig.add_subplot(gs[i, j], projection=projection)
-
-            if i == 0:
-                ax.set_title(mod_label)
 
             # plotting
             coords_x = []
@@ -96,16 +109,22 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
             for stid in station_info.index:
 
                 if stid not in station_to_scores or station_to_scores[stid] is None:
-                    logger.info(f"Stats were not calculated for {stid}, not mapping it.")
+                    logger.info(f"Stats were not calculated for {stid} , not mapping it.")
                     continue
 
                 lat, lon = [station_info.loc[stid, cn] for cn in [io_manager.LAT_COL_NAME, io_manager.LON_COL_NAME]]
 
-                coords_x.append(lon)
-                coords_y.append(lat)
+                x, y = projection.transform_point(lon, lat, ccrs.PlateCarree())
+
+                coords_x.append(x)
+                coords_y.append(y)
 
                 # plotting values
                 if j < len(mod_labels):
+
+                    logger.debug(stid)
+                    logger.debug(station_to_scores[stid])
+
                     vals.append(station_to_scores[stid][mod_label][score_id])
 
                     # mean score for all stations
@@ -113,8 +132,10 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                     val_mean = sum([v * c for v, c in zip(vals, counts)]) / sum(counts)
 
                 else:
-                    vals.append(station_to_scores[stid][mod_labels[1]][score_id] - station_to_scores[stid][mod_labels[0]][score_id])
-
+                    vals.append(
+                        station_to_scores[stid][mod_labels[1]][score_id] - station_to_scores[stid][mod_labels[0]][
+                            score_id]
+                    )
 
             # plotting values
             extend = "max"
@@ -135,46 +156,74 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                              norm=norm,
                              edgecolors="k",
                              linewidths=0.3,
-                             s=plot_params.get("score_map_marker_size", None))
+                             s=plot_params.get("score_map_marker_size", None),
+                             zorder=10)
 
             logger.debug("\nvals=%s", vals)
             # create an axes on the right side of ax. The width of cax will be 5%
             # of ax and the padding between cax and ax will be fixed at 0.05 inch.
             divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right",
+            cb_position = plot_params.get("score_map_colorbar_position", "right")
+            cax = divider.append_axes(cb_position,
                                       size=plot_params.get("score_map_colorbar_fraction", "5%"),
-                                      pad=0.05, axes_class=plt.Axes)
-            cb = plt.colorbar(img, cax=cax, extend=extend)
+                                      pad=0.05,
+                                      axes_class=plt.Axes)
+
+            cax.set_xticklabels(cax.get_xticks(), rotation=45)
+
+            orientation = "horizontal" if cb_position in ["top", "bottom"] else "vertical"
+
+            cb = plt.colorbar(img, cax=cax, extend=extend, orientation=orientation)
             cb.ax.set_visible(j > 0 or only_one_model_label)
-            ax.coastlines(resolution="10m", linewidth=0.2)
+            if j == len(mod_labels):
+                tick_labels = [item.get_text() for item in cax.xaxis.get_ticklabels()]
+                tick_labels[0], tick_labels[-1] = "NEW better", "REF better"
+                cax.set_xticklabels(tick_labels)
+            cb.ax.set_ylabel(f"({score_units[score_id]})")
+
+            ax.coastlines(resolution="10m", linewidth=0.05)
             lakes = cartopy.feature.NaturalEarthFeature(
                 "physical", "lakes", "10m",
                 edgecolor="k",
-                facecolor="none",
-                linewidth=0.2
+                facecolor="none"
             )
-            ax.add_feature(lakes)
+            ax.add_feature(lakes, linewidth=0.05)
+
+            # set pannel titles
+            if j < len(mod_labels):
+                if i == 0:
+                    ax.set_title(mod_label + "\n" + f"$\overline{{{score_labels[score_id]}}} = {val_mean:.2f}$")
+                else:
+                    ax.set_title(f"$\overline{{{score_labels[score_id]}}} = {val_mean:.2f}$")
+            else:
+                if i == 0:
+                    ax.set_title(mod_label)
 
             bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
 
-            if j < len(mod_labels):
-                ax.annotate(f"$\overline{{{score_labels[score_id][1:-1]}}} = {val_mean:.2f}$",
-                            xy=(-0.0, 0.99), xycoords="axes fraction", va="top", ha="right",
-                            bbox=bbox_props)
+            # if j < len(mod_labels):
+            #     ax.annotate(f"$\overline{{{score_labels[score_id][1:-1]}}} = {val_mean:.2f}$",
+            #                 xy=(0.95, 1),
+            #                 xycoords="axes fraction",
+            #                 va="top",
+            #                 ha="left",
+            #                 bbox=bbox_props)
 
-            if j == 0:
-                ax.text(-0.07, 0.55, score_labels[score_id], va="bottom", ha="center",
-                        rotation="vertical", rotation_mode="anchor",
+            if j < len(mod_labels):
+                ylabel = fr"$\left({score_labels[score_id]}\right)$"
+                ax.text(0.0, 1, ylabel,
+                        va="top",
+                        ha="right",
                         transform=ax.transAxes)
 
             if only_one_model_label:
                 logger.info(f"There is only 1 unique model label ({mod_label}), only plotting its scores.")
                 break
 
-    img = img_dir / f"map_scores{map_label}.png"
+    img = img_dir / f"map_scores{map_label}.pdf"
     fig.canvas.draw()
     # fig.tight_layout()
-    fig.savefig(img, bbox_inches="tight", dpi=300)
+    fig.savefig(img, bbox_inches="tight", transparent=True)
     plt.close(fig)
 
 

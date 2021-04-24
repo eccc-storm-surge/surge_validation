@@ -11,6 +11,7 @@ STID_COL_NAME = "station_id"
 LAT_COL_NAME = "lat"
 LON_COL_NAME = "lon"
 OBS_COL_NAME = "obs"
+DATEO_COL_NAME = "dateo"
 
 # indices of the columns in the input file
 INFILE_STID_INDEX = 1
@@ -24,10 +25,13 @@ known_formats = [SPACE_SEPARATED_XDAT, MODEL_AND_OBS_ONE_FILE]
 
 
 def read_wl_station_data(data_store, station_dict=None,
-                         fname_suffix=".dat", max_lead_hour=None):
+                         fname_suffix=".dat",
+                         max_lead_hour=None,
+                         n_ignore_edge_forecasts:dict = None):
     """
     The data is returned as a pandas dataframe {time, station_id, obs, model1, model2, ... modeln}
 
+    :param n_ignore_edge_forecasts: (n_beg, n_end) - number of first and last forecasts to discard
     :param data_store: if data_store is a folder, look for data files containing station id in their names
     :param station_dict:
     :param format:
@@ -60,6 +64,8 @@ def read_wl_station_data(data_store, station_dict=None,
 
         df.columns = col_names
 
+        df[DATEO_COL_NAME] = (df[TIME_COL_NAME] - pd.TimedeltaIndex(df[VALIDH_COL_NAME], unit="hour"))
+
         # select only data for selected station ids
         if station_dict is not None:
             logger.info(f"reading only data for specified stations in {station_dict}.")
@@ -85,6 +91,15 @@ def read_wl_station_data(data_store, station_dict=None,
     # filter only lead hour less than the maximum specified
     if max_lead_hour is not None:
         df = df[df[VALIDH_COL_NAME] <= max_lead_hour]
+
+    if n_ignore_edge_forecasts is not None:
+        logger.info("Discarding {} first and {} last forecasts, for transients removal")
+        to = df[DATEO_COL_NAME]
+        to_unique = to.sort_values().drop_duplicates()
+        to_min = to_unique.iloc[n_ignore_edge_forecasts["beg"]]
+        to_max = to_unique.iloc[len(to_unique) - n_ignore_edge_forecasts["end"] - 1]
+
+        df = df[(to >= to_min) & (to <= to_max)]
 
     return df
 

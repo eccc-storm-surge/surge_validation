@@ -37,11 +37,12 @@ def convert_mpl_colors_to_bokeh_rgb(mpl_colors):
     return res
 
 
-def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=None, station_dict=default_params.station_dict,
+def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=None,
+                                             station_dict=default_params.station_dict,
                                              st_time=None, en_time=None, img_dir=None, model_label_list=(),
                                              model_colors=("b", "r"),
                                              run_freq_hours=6, ylim=None, linewidth=1, member_id="",
-                                             remove_ndays_mean=None):
+                                             remove_ndays_mean=None, min_valid_hour=0):
     """
     :param label_to_scores: labels to scores, if provided will be shown in a table
     :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
@@ -77,7 +78,9 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
 
     # Select and plot obs on top of the model data
     st_sel_obs = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id].copy()
-    st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] <= run_freq_hours[model_label_list[0]]]
+    st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label_list[0]]]
+    st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
+
     st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
     st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
     st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
@@ -89,8 +92,6 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
 
     out_plot = img_dir / "interactive" / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.html"
 
-
-
     out_plot.parent.mkdir(exist_ok=True, parents=True)
     bpl.output_file(str(out_plot),  title=f"{st_name} ({st_id})")
     p = bpl.figure(sizing_mode="stretch_both", x_axis_type="datetime")
@@ -98,7 +99,8 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     for swl, model_label in zip(swl_list, model_label_list):
         model_color = model_label_to_color[model_label]
         st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
-        st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] <= run_freq_hours[model_label]]
+        st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label]]
+        st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
         st_sel_mod.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
         st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)

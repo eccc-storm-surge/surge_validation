@@ -7,7 +7,7 @@ from pathlib import Path
 from surge_validation.detiding_validation.config import default_params
 from datetime import datetime
 
-from surge_validation.detiding_validation.experiments.FC70H17V2 import compare_forecast
+from surge_validation.detiding_validation.experiments.validation_experiment_base import compare_forecast
 
 EXP_ID = "ciopse_filt_opt_forecast_debias_5day_vs_no"
 

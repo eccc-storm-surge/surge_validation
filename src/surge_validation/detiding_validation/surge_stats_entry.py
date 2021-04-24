@@ -95,7 +95,7 @@ def plot_scores_generalize(ax, lbl_to_series: dict,
         color = lbl_to_color[lbl]
         ax = series.plot(y=col_name, legend=False,
                          color=color,
-                         lw=0.5,
+                         lw=2,
                          ax=ax,
                          sharex=shared_ax, sharey=None,
                          rot=45, label=lbl, ylim=ylimits)
@@ -183,13 +183,22 @@ def plot_scores(ax, old_series, new_series, col_name, shared_ax=None,
 def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
                           station_dict=default_params.station_dict,
                           member_id="",
-                          forecast_hour_tick_multiplier=24,
                           select_stations=None, n_subplot_cols=4,
                           custom_rc_params=None,
                           show_avg_diff=True,
-                          qq_lead_hour_range=range(244), max_lead_hour=None):
+                          qq_lead_hour_range=range(244),
+                          confidence_level=0.9,
+                          score_plots_params=None):
 
     logging.info("Start compare_n_simulations ...")
+
+    if score_plots_params is None:
+        score_plots_params = {}
+
+    forecast_hour_tick_multiplier = score_plots_params["forecast_hour_tick_multiplier"]
+    max_lead_hour = score_plots_params.get("max_lead_hour", None)
+    min_lead_hour = score_plots_params.get("min_lead_hour", None)
+
 
     nbootstrap_default = 100
 
@@ -203,11 +212,16 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         lbl_to_data = {key: data[data[io_manager.VALIDH_COL_NAME] <= max_lead_hour]
                        for key, data in lbl_to_data.items()}
 
+    if min_lead_hour is not None:
+        lbl_to_data = {key: data[data[io_manager.VALIDH_COL_NAME] >= min_lead_hour]
+                       for key, data in lbl_to_data.items()}
+
+
     # set font size
-    if custom_rc_params is None:
-        matplotlib.rcParams.update({'font.size': 5})
-    else:
-        matplotlib.rcParams.update(custom_rc_params)
+    # if custom_rc_params is None:
+    #     matplotlib.rcParams.update({'font.size': 5})
+    # else:
+    #     matplotlib.rcParams.update(custom_rc_params)
 
     # TODO: add a flag to be able to disable qqplots
 
@@ -216,13 +230,19 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
     for lead in qq_lead_hour_range:
         qqplot(
             label_to_dataframe=lbl_to_data, label_to_color=lbl_to_color,
-            station_dict=station_dict, plot_params=custom_rc_params, n_subplot_cols=n_subplot_cols,
+            station_dict=station_dict,
+            plot_params=custom_rc_params, n_subplot_cols=n_subplot_cols,
             img_dir=img_dir,
             lead_h_min=lead, lead_h_max=lead
         )
 
     if not img_dir.exists():
         img_dir.mkdir(parents=True, exist_ok=True)
+
+    # clean image direcrotry
+    for f in img_dir.rglob("*"):
+        if f.is_file():
+            f.unlink()
 
     statname_to_disp = {
         "stde": r"$\sigma_{\varepsilon}$ (m)",
@@ -247,17 +267,19 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         "_gamma_varobsallvhour": gamma_varobsallvhour
     }
 
+    conf_level_pcnt = confidence_level * 100
+    alpha_ci = 1 - confidence_level
     stats_functions_params = {
         "_stde": {"nbootstrap": nbootstrap_default,
-                  "alpha_ci": 0.4,
-                  "legend_title": "60% conf. interval"},
+                  "alpha_ci": alpha_ci,
+                  "legend_title": f"{conf_level_pcnt}% conf. interval"},
         "_gamma": {"nbootstrap": nbootstrap_default,
-                   "alpha_ci": 0.4,
-                   "legend_title": "60% conf. interval"},
+                   "alpha_ci": alpha_ci,
+                   "legend_title": f"{conf_level_pcnt}% conf. interval"},
         "_stde_obs": {},
         "_gamma_varobsallvhour": {"nbootstrap": nbootstrap_default,
-                                  "alpha_ci": 0.4,
-                                  "legend_title": "60% conf. interval"}
+                                  "alpha_ci": alpha_ci,
+                                  "legend_title": f"{conf_level_pcnt}% conf. interval"}
     }
 
     member_col_index = 0
@@ -266,7 +288,8 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         col_names = io_manager.get_model_column_names(data_any, suffix=suffix)
 
         lbl_to_stats = OrderedDict([
-            (lbl, afunc(data, stids_not_overall=stids_not_overall, **stats_functions_params[suffix])) for lbl, data in lbl_to_data.items()
+            (lbl, afunc(data, stids_not_overall=stids_not_overall, **stats_functions_params[suffix]))
+                for lbl, data in lbl_to_data.items()
         ])
 
         # determine number of rows in the panel plot
@@ -277,7 +300,8 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
 
         nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
 
-        fig = plt.figure(figsize=custom_rc_params.get("figure.figsize", (9, 12)))
+        panel_width, panel_height = score_plots_params.get("single_panel_figsize", (7.5, 5.5))
+        fig = plt.figure(figsize=(panel_width * n_subplot_cols, panel_height * nrows), dpi=96)
         gs = GridSpec(nrows, n_subplot_cols, top=0.90, wspace=0.4)
         shared_ax = None
 
@@ -334,8 +358,10 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
 
         plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
                                lbl_to_color=lbl_to_color,
-                               col_name=col_names[member_col_index], shared_ax=shared_ax,
-                               title="All stations", show_avg_diff=show_avg_diff)
+                               col_name=col_names[member_col_index],
+                               shared_ax=shared_ax,
+                               title="All stations",
+                               show_avg_diff=show_avg_diff)
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
 
@@ -345,8 +371,7 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
                   title=legend_title)
 
         # get min/max origin times for titles
-        t_origin = (data_any[io_manager.TIME_COL_NAME] - pd.TimedeltaIndex(data_any[io_manager.VALIDH_COL_NAME],
-                                                                           unit="hour"))
+        t_origin = data_any[io_manager.DATEO_COL_NAME]
         st_time = t_origin.min()
         en_time = t_origin.max()
 
@@ -354,14 +379,14 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
         if max_lead_hour is not None:
-            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.png"
+            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.pdf"
         else:
-            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.png"
+            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.pdf"
 
-        fig.savefig(str(img_file), dpi=400, bbox_inches="tight")
+        fig.savefig(str(img_file), bbox_inches="tight", transparent=True)
 
         # save for overall stats into a separate file
-        fig = plt.figure(figsize=(5, 5))
+        fig = plt.figure(figsize=score_plots_params.get("single_panel_figsize", (5, 3)), dpi=96)
         ax = fig.gca()
 
         plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
@@ -376,14 +401,14 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
         if max_lead_hour is not None:
-            img_file = img_dir / f"all_stations_{suffix[1:]}_max_lead_{max_lead_hour}.png"
+            img_file = img_dir / f"all_stations_{suffix[1:]}_max_lead_{max_lead_hour}.pdf"
         else:
-            img_file = img_dir / f"all_stations_{suffix[1:]}.png"
+            img_file = img_dir / f"all_stations_{suffix[1:]}.pdf"
 
-        fig.savefig(img_file, dpi=400, bbox_inches="tight")
+        fig.savefig(img_file, bbox_inches="tight", transparent=True)
         plt.close(fig)
 
-    logging.info("Finished compare_2_simulations ...")
+    logging.info("Finished compare_n_simulations ...")
 
 
 def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
@@ -403,6 +428,10 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
     # read the data into memory
     swl_old = io_manager.read_wl_station_data(swl_path_old, station_dict=station_dict, max_lead_hour=max_lead_hour)
     swl_new = io_manager.read_wl_station_data(swl_path_new, station_dict=station_dict, max_lead_hour=max_lead_hour)
+
+    t_origin = swl_old[io_manager.TIME_COL_NAME] - pd.TimedeltaIndex(swl_old[io_manager.TIME_COL_NAME], unit="hour")
+    period_s = f"{t_origin.min():%Y%m%d%H}-{t_origin.max():%Y%m%d%H}"
+
 
     # set font size
     if custom_rc_params is None:
@@ -540,7 +569,6 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
         ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4), borderaxespad=0.)
 
-        period_s = f"{swl_old[io_manager.TIME_COL_NAME].min():%Y%m%d%H}-{swl_old[io_manager.TIME_COL_NAME].max():%Y%m%d%H}"
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
         st_time = swl_old[io_manager.TIME_COL_NAME].min()
         en_time = swl_old[io_manager.TIME_COL_NAME].max()
@@ -550,7 +578,7 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         else:
             img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.png"
 
-        fig.savefig(str(img_file), dpi=400, bbox_inches="tight")
+        fig.savefig(str(img_file), bbox_inches="tight")
 
         # save for overall stats into a separate file
         fig = plt.figure(figsize=(5, 5))
@@ -565,11 +593,11 @@ def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
         if max_lead_hour is not None:
-            img_file = img_dir / f"all_stations_{suffix[1:]}_max_lead_{max_lead_hour}.png"
+            img_file = img_dir / f"all_stations_{suffix[1:]}_max_lead_{max_lead_hour}.pdf"
         else:
-            img_file = img_dir / f"all_stations_{suffix[1:]}.png"
+            img_file = img_dir / f"all_stations_{suffix[1:]}.pdf"
 
-        fig.savefig(img_file, dpi=400, bbox_inches="tight")
+        fig.savefig(img_file, bbox_inches="tight", transparent=True)
         plt.close(fig)
 
     logging.info("Finished compare_2_simulations ...")
@@ -620,7 +648,7 @@ def get_b2b_timeseries(lbl_to_data: dict, b2b_nhours: dict, min_valid_hour=0):
     for lbl, exp_data in lbl_to_data.items():
         lbl_to_station_to_ts[lbl] = {}
         for st_id, st_data in exp_data.groupby(io_manager.STID_COL_NAME):
-            ts = st_data[st_data[io_manager.VALIDH_COL_NAME] <= b2b_nhours[lbl]].sort_values(io_manager.TIME_COL_NAME)
+            ts = st_data[st_data[io_manager.VALIDH_COL_NAME] < b2b_nhours[lbl]].sort_values(io_manager.TIME_COL_NAME)
             ts = ts[ts[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
             ts = ts.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="first").set_index(io_manager.TIME_COL_NAME)
             lbl_to_station_to_ts[lbl][st_id] = ts
