@@ -169,8 +169,6 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                                       pad=0.05,
                                       axes_class=plt.Axes)
 
-            cax.set_xticklabels(cax.get_xticks(), rotation=45)
-
             orientation = "horizontal" if cb_position in ["top", "bottom"] else "vertical"
 
             cb = plt.colorbar(img, cax=cax, extend=extend, orientation=orientation)
@@ -179,7 +177,8 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                 tick_labels = [item.get_text() for item in cax.xaxis.get_ticklabels()]
                 tick_labels[0], tick_labels[-1] = "NEW better", "REF better"
                 cax.set_xticklabels(tick_labels)
-            cb.ax.set_ylabel(f"({score_units[score_id]})")
+            cb.ax.set_ylabel(f"({score_units[score_id]})", rotation=0)
+            cax.set_xticklabels(cax.get_xticks(), rotation=45)
 
             ax.coastlines(resolution="10m", linewidth=0.05)
             lakes = cartopy.feature.NaturalEarthFeature(
