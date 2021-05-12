@@ -94,7 +94,8 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
 
     out_plot.parent.mkdir(exist_ok=True, parents=True)
     bpl.output_file(str(out_plot),  title=f"{st_name} ({st_id})")
-    p = bpl.figure(sizing_mode="stretch_both", x_axis_type="datetime")
+    p = bpl.figure(sizing_mode="stretch_both", x_axis_type="datetime", 
+                   title=f"{station_dict.get(st_id, st_id)} ({st_id})")
 
     for swl, model_label in zip(swl_list, model_label_list):
         model_color = model_label_to_color[model_label]
