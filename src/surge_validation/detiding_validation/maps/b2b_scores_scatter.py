@@ -174,11 +174,27 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
             cb = plt.colorbar(img, cax=cax, extend=extend, orientation=orientation)
             cb.ax.set_visible(j > 0 or only_one_model_label)
             if j == len(mod_labels):
-                tick_labels = [item.get_text() for item in cax.xaxis.get_ticklabels()]
-                tick_labels[0], tick_labels[-1] = "NEW better", "REF better"
-                cax.set_xticklabels(tick_labels)
-            cb.ax.set_ylabel(f"({score_units[score_id]})", rotation=0)
-            cax.set_xticklabels(cax.get_xticks(), rotation=45)
+
+                cb_axis = cb.ax.xaxis if orientation == "horizontal" else cb.ax.yaxis
+                ha = "right" if orientation == "horizontal" else "left"
+                # make sure all the ticks are shown
+                cb_axis.set_ticks(cb_axis.get_ticklocs())
+
+                tick_labels = [item for item in cb_axis.get_ticklabels()]
+                tick_labels[0].set_text("NEW: better")
+                tick_labels[0].set_color(cmap(0.0))
+
+                tick_labels[-1].set_text("REF: better")
+                tick_labels[-1].set_color(cmap(1.0))
+
+                cb_axis.set_ticklabels(tick_labels, ha=ha)
+
+            if orientation == "horizontal":
+                cb.ax.set_ylabel(f"({score_units[score_id]})", rotation="horizontal", ha="right")
+            else:
+                cb.ax.set_xlabel(f"({score_units[score_id]})", rotation="horizontal")
+
+            cax.tick_params(axis="x", rotation=45)
 
             ax.coastlines(resolution="10m", linewidth=0.05)
             lakes = cartopy.feature.NaturalEarthFeature(

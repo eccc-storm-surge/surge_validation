@@ -1,8 +1,12 @@
-import importlib
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Pool
 from pathlib import Path
+from joblib import Parallel, delayed
+
+import importlib
 
 
+# to call each experiment in a pool
 def smap(func):
     func()
     return 0
@@ -10,7 +14,7 @@ def smap(func):
 
 def main():
     all_configs = []
-    for mfile in Path(__file__).parent.glob("gdsps_*.py"):
+    for mfile in Path(__file__).parent.glob("resps*.py"):
         m = importlib.import_module(mfile.name[:-3], package=".")
         all_configs.append(m)
 
@@ -18,11 +22,12 @@ def main():
     for cfg in all_configs:
         print(cfg.__name__)
 
-    # run all configs (use a pool of processes for a proper error handling)
-
     # start a process for each config (use with so it fails correctly when a proc fails)
-    with Pool(processes=len(all_configs)) as p:
-        p.map(smap, [amodule.main for amodule in all_configs])
+    # with Pool(processes=len(all_configs)) as p:
+    #     p.map(smap, [amodule.main for amodule in all_configs])
+
+    for cfg in all_configs:
+        cfg.main()
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ import re
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-SKIP_STATIONS = ["1430", ]
+SKIP_STATIONS = ["1430", "491"]
 BSS_MARK = "bsss"
 CRPS_MARK = "scores"
 CRPS_INDEX = 1
@@ -29,8 +29,8 @@ BSS_INDEX = 2
 
 
 STAT_TO_YLIM = {
-    BSS_MARK: (0.4, 0.8),
-    CRPS_MARK: (0, 0.2)
+    BSS_MARK: (None, None),
+    CRPS_MARK: (None, None)
 }
 
 STID_PATTERN = re.compile(r"\d+.txt$")
@@ -126,10 +126,10 @@ def plot_crps_bss(data: dict, data_colors: dict,
 
     nrows = nsubplots // ncols + int(nsubplots % ncols != 0)
 
-    fig = plt.figure(figsize=(8.5, 18))
+    fig = plt.figure(figsize=(5.5 * ncols, 3.5 * nrows))
     gs = GridSpec(nrows=nrows, ncols=ncols)
 
-    stats_clean = stats.replace(" ", "")
+    stats_clean = "".join(list(c for c in stats if c.isalnum() or c in [".", "-"]))
 
     # fig.suptitle(stats)
     for i, st_id in enumerate(station_ids):
@@ -169,7 +169,8 @@ def plot_crps_bss(data: dict, data_colors: dict,
             ax.legend()
 
     fig.tight_layout()
-    fig.savefig(out_dir / f"{stats_clean}_subplots.pdf", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_subplots.pdf",
+                bbox_inches="tight", transparent=True)
 
 
     # plot all stations separately
@@ -203,7 +204,8 @@ def plot_crps_bss(data: dict, data_colors: dict,
     ax.set_ylabel(stats)
 
     ax.legend()
-    fig.savefig(out_dir / f"{stats_clean}_all_stations.pdf", bbox_inches="tight")
+    fig.savefig(out_dir / f"{stats_clean}_all_stations.pdf",
+                bbox_inches="tight", transparent=True)
 
 
 def main():
@@ -213,6 +215,7 @@ def main():
     call as
         python plot_bss_and_crps.py --paths <path1> <path2> ... <pathn> \
                                     --labels <label1> <label2> ... <labeln> \
+                                    --colors c1 c2 ... cn \
                                   [ --out_dir ./ ] [--bsslim min max] [--crpslim min max]
 
     """
@@ -238,11 +241,11 @@ def main():
                         help="Path to the folder, where to store plots",
                         required=False, type=int)
 
-    parser.add_argument("--bsslim", nargs=2,
+    parser.add_argument("--bsslim", nargs="?",
                         default=STAT_TO_YLIM[BSS_MARK],
                         required=False, type=float, help="y axis limits on the plot (BSS)")
 
-    parser.add_argument("--crpslim", nargs=2, default=STAT_TO_YLIM[CRPS_MARK],
+    parser.add_argument("--crpslim", nargs="?", default=STAT_TO_YLIM[CRPS_MARK],
                         required=False, type=float, help="y axis limits on the plot (CRPS)")
 
 

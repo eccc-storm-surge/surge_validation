@@ -5,6 +5,8 @@ import logging
 from collections import OrderedDict
 from pathlib import Path
 import matplotlib.pyplot as plt
+from cartopy.crs import LambertConformal
+
 plt.style.use("seaborn-talk")
 
 from surge_validation.detiding_validation import io_manager
@@ -66,9 +68,12 @@ def fc(station_dict=default_params.station_dict,
         "calculate_scores": True,
         "do_b2b_timeseries": True,
         "b2b_split_seasons": b2b_split_seasons,
-        "score_map_figsize": (13.5, 5.5),
-        "score_map_marker_size": 20,
-        "score_map_colorbar_fraction": "2%",
+        "score_map_figsize": (13.5, 8),
+        "score_map_marker_size": 35,
+        "score_map_colorbar_fraction": "8%",
+        "score_map_fontsize": 13,
+        "score_map_projection":  LambertConformal(),
+        "score_map_colorbar_position": "right",
         "plot_spectra": True,
         "plot_tide_constituents": True,
         # number of forecasts to ignore to avoid transients from filtering

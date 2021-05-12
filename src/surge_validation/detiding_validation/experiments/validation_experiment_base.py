@@ -1,13 +1,15 @@
 #  ========== FC70H16V2 vs op (RDSPS, forecast) ===============
 import logging
 from collections import OrderedDict
-from multiprocessing import Process
+from concurrent import futures
 from pathlib import Path
 from datetime import datetime
 
 from surge_validation.detiding_validation import io_manager, surge_stats_entry
 from surge_validation.detiding_validation.config.default_params import get_color_list, OptionNames, \
     set_default_plot_params
+from surge_validation.diagnostics.ensembles.plot_talagrand_diagrams import plot_ranks
+from surge_validation.misc.scheduling import get_thread_pool_executor, get_process_pool_executor
 from surge_validation.spectral_plots import plot_power_spectra
 from surge_validation.tidal_constituents import ttide_plot_amplitudes_and_phases_at_stations
 from surge_validation.utils import log_utils
@@ -52,6 +54,9 @@ def compare_forecast(station_dict=default_params.station_dict,
     """
 
     logger = log_utils.get_logger(__name__)
+
+    process_pool = get_process_pool_executor()
+    future_list = []
 
     set_default_plot_params()
 
@@ -108,16 +113,29 @@ def compare_forecast(station_dict=default_params.station_dict,
         for agg_hour in agg_periods:
             lbl_to_data_agg = surge_stats_entry.aggregate_in_time(lbl_to_data=lbl_to_data, agg_hours=agg_hour)
             agg_img_dir = img_dir / f"agg_{agg_hour}hrs"
-            compare_n_simulations(lbl_to_data_agg, exp_id_to_color, agg_img_dir,
-                                  station_dict=station_dict,
-                                  custom_rc_params=plot_params,
-                                  n_subplot_cols=n_subplot_cols,
-                                  qq_lead_hour_range=qq_lead_hour_range,
-                                  show_avg_diff=len(np.unique(labels)) > 1,
-                                  member_id=member_id,
-                                  select_stations=list(station_dict),
-                                  score_plots_params=score_plots_params)
+            # compare_n_simulations(lbl_to_data_agg, exp_id_to_color, agg_img_dir,
+            #                       station_dict=station_dict,
+            #                       custom_rc_params=plot_params,
+            #                       n_subplot_cols=n_subplot_cols,
+            #                       qq_lead_hour_range=qq_lead_hour_range,
+            #                       show_avg_diff=len(np.unique(labels)) > 1,
+            #                       member_id=member_id,
+            #                       select_stations=list(station_dict),
+            #                       score_plots_params=score_plots_params)
 
+            fut = process_pool.submit(compare_n_simulations,
+                                        lbl_to_data_agg, exp_id_to_color, agg_img_dir,
+                                        station_dict=station_dict,
+                                        custom_rc_params=plot_params,
+                                        n_subplot_cols=n_subplot_cols,
+                                        qq_lead_hour_range=qq_lead_hour_range,
+                                        show_avg_diff=len(np.unique(labels)) > 1,
+                                        member_id=member_id,
+                                        select_stations=list(station_dict),
+                                        score_plots_params=score_plots_params)
+            future_list.append(fut)
+
+    logger.debug(f"submitted {len(future_list)} tasks")
     # plot time series
 
     # a) back to back
@@ -155,9 +173,11 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                                                     remove_ndays_mean=options.get("b2b_remove_ndays_mean", None),
                                                                                     min_valid_hour=options.get("min_lead_hour", 0))
 
-        plot_score_maps(station_scores, labels, exp_id_to_path,
-                        img_dir=img_dir,
-                        plot_params=options)
+        fut = process_pool.submit(plot_score_maps,
+                                    station_scores, labels, exp_id_to_path,
+                                    img_dir=img_dir,
+                                    plot_params=options)
+        future_list.append(fut)
 
         save_scores_to_txt(station_scores, labels, img_dir)
 
@@ -173,20 +193,26 @@ def compare_forecast(station_dict=default_params.station_dict,
                 continue
 
             logger.info("Mapping scores for %s", season)
-            plot_score_maps(scores, labels, exp_id_to_path,
-                            img_dir=img_dir_season,
-                            map_label=f"{season}",
-                            plot_params=options)
+            fut = process_pool.submit(plot_score_maps,
+                                        scores, labels, exp_id_to_path,
+                                        img_dir=img_dir_season,
+                                        map_label=f"{season}",
+                                        plot_params=options)
+            future_list.append(fut)
+
             logger.info("Finished mapping scores for %s", season)
 
     # b) full forecasts
     if options.get("do_full_forecast_timeseries", True):
         ts_plots_dir = img_dir / f"timeseries_complete_forecast"
-        compare_sims_timeseries_one_plot_per_fc(labels, exp_id_to_path, exp_id_to_color,
-                                                ts_plots_dir,
-                                                station_dict=station_dict,
-                                                st_time=st_time, en_time=en_time,
-                                                linewidth=0.3, member_id=member_id)
+
+        fut = process_pool.submit(compare_sims_timeseries_one_plot_per_fc,
+                                    labels, exp_id_to_path, exp_id_to_color,
+                                    ts_plots_dir,
+                                    station_dict=station_dict,
+                                    st_time=st_time, en_time=en_time,
+                                    linewidth=0.3, member_id=member_id)
+        future_list.append(fut)
 
     plot_spectra = options.get("plot_spectra", True)
     plot_tide_constituents = options.get("plot_tide_constituents", False)
@@ -201,18 +227,40 @@ def compare_forecast(station_dict=default_params.station_dict,
     # plot power spectra
     if plot_spectra:
         spectra_plots_dir = img_dir / "spectra"
-        plot_power_spectra.plot_using_cross_spectra(img_dir=spectra_plots_dir,
-                                                    lbl_to_station_to_ts=lbl_to_station_to_ts,
-                                                    lbl_to_color=exp_id_to_color,
-                                                    station_dict=station_dict)
+        fut = process_pool.submit(plot_power_spectra.plot_using_cross_spectra,
+                                        img_dir=spectra_plots_dir,
+                                        lbl_to_station_to_ts=lbl_to_station_to_ts,
+                                        lbl_to_color=exp_id_to_color,
+                                        station_dict=station_dict)
+        future_list.append(fut)
 
     # plot constituents calculated using ttide
     if plot_tide_constituents:
         tide_plots_dir = img_dir / "ttide-analysis"
         ttide_plot_amplitudes_and_phases_at_stations.plot_ttide_tide_spectra(
-            lbl_to_station_to_ts, img_dir=tide_plots_dir, lbl_to_color=exp_id_to_color,
+            lbl_to_station_to_ts,
+            img_dir=tide_plots_dir,
+            lbl_to_color=exp_id_to_color,
             station_dict=station_dict
         )
+
+    # plot talagrand plots
+    # TODO: add significance
+    if options.get(OptionNames.DO_TALAGRAND_RANK_PLOTS, False):
+        leads = options.get(OptionNames.TALAGRAND_LEADS_LIST, None)
+        plot_params = dict(marker_size=8, alpha=0.7)
+
+        talagrand_plots_dir = img_dir / "talagrand_ranks"
+
+        plot_ranks(lbl_to_data, exp_id_to_color,
+                   leads=leads, stid_to_name=station_dict,
+                   plot_params=plot_params, img_dir=talagrand_plots_dir)
+
+
+    # wait for the results
+    for fut in futures.as_completed(future_list):
+        fut.result()
+        logger.debug("Completed 1 more task")
 
     # just a status file to know that it is done
     with (img_dir / "ok").open('wb') as _:
@@ -296,4 +344,5 @@ def main_36h_dc101():
 if __name__ == '__main__':
     # main()
     # Process(target=main_36h).start()
-    Process(target=main_36h_dc101).start()
+    # Process(target=main_36h_dc101).start()
+    pass

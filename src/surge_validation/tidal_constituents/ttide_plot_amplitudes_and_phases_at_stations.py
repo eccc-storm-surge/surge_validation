@@ -128,7 +128,7 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
             # actual plotting
 
-            for tide_con in tide_con_list:
+            for tidecon_idx, tide_con in enumerate(tide_con_list):
                 # logger.debug(tide_con)
 
                 df = tidecon_to_dataframe(tide_con)
@@ -141,6 +141,8 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 ax_pha.fill_between(df.index, df["pha"] - df["pha_err"], df["pha"] + df["pha_err"],
                                     color=_lbl_to_color[lbl],
                                     alpha=0.4)
+
+                label = None  # put the model label only once, relevant for ensembles
 
         # special metric to calculate phase errors
         for lbl, tide_con_list in tide_props_mod.items():

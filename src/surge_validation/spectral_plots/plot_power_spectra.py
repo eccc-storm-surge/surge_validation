@@ -20,7 +20,7 @@ from ..utils.strutils import stname_to_fname2
 def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                              lbl_to_color: dict,
                              station_dict=default_params.station_dict,
-                             fs=timedelta(hours=1), cpd_max=5):
+                             fs=timedelta(hours=1), cpd_max=10):
     """
     This plots spectra for stations using function developed by Natacha Bernier
     (see comments in utils/crosspec.py)
@@ -63,7 +63,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 ts_obs = lbl_to_station_to_ts[lbl][station_id][io_manager.OBS_COL_NAME].asfreq(fs)
                 x = np.where(ts_obs.isna(), 0, ts_obs.values)
                 # freq, px_obs = crosspec(m, x)
-                freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(0.5*len(x)))
+                freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(0.25*len(x)))
 
                 freq = freq * freq_mul
                 sel = freq <= cpd_max
@@ -76,7 +76,8 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 # freq_1, px_1 = signal.csd(x, x, fs=1. / fs.total_seconds(), scaling="spectrum", nperseg=m, detrend=False)
 
             logger.debug(lbl_to_station_to_ts[lbl][station_id].head())
-            for c in lbl_to_station_to_ts[lbl][station_id].columns:
+            added_to_legend = False
+            for c_index, c in enumerate(lbl_to_station_to_ts[lbl][station_id].columns):
                 if not c.startswith("mod"):
                     continue
 
@@ -90,10 +91,13 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 sel = freq <= cpd_max
                 px = px[sel]
                 freq = freq[sel]
-                mod_lines = ax.semilogy(freq.copy(), px.copy(), color=lbl_to_color[lbl], label=lbl)
+                mod_lines = ax.semilogy(freq.copy(), px.copy(), color=lbl_to_color[lbl],
+                                        label=lbl if not added_to_legend else None)
+                added_to_legend = True
+
                 mod_artists.append(mod_lines[0])
 
-        ax.legend(handles=obs_artists + mod_artists)
+        ax.legend()
         ax.set_title(title)
         ax.grid(True)
         ax.set_xlabel("Cycles per day")

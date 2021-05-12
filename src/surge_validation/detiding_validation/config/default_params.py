@@ -146,6 +146,11 @@ score_clevs = {
 class OptionNames(object):
     IGNORE_EDGE_FORECASTS = "ignore_edge_forecasts"
 
+    # If True, talagrand rank plots will be created
+    DO_TALAGRAND_RANK_PLOTS = "do_talagrand_rank_plots"
+
+    # list of lead hours for talagrand rank plots [(lead11, lead12), (lead21, lead22), ...]
+    TALAGRAND_LEADS_LIST = "talagrand_leads_list"
 
 
 def get_color_list():
@@ -163,6 +168,10 @@ def get_color_list():
     others = [c for c in colors.TABLEAU_COLORS if c not in first + second]
 
     return first + second + others
+
+
+def get_station_dict():
+    return station_dict.copy()
 
 
 def set_default_plot_params():

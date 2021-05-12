@@ -104,9 +104,9 @@ def plot_scores_generalize(ax, lbl_to_series: dict,
         cname_ci_min = None
         cname_ci_max = None
         for cname in series.columns:
-            if cname.endswith("ci_min"):
+            if cname.endswith(f"{col_name}_ci_min"):
                 cname_ci_min = cname
-            elif cname.endswith("ci_max"):
+            elif cname.endswith(f"{col_name}_ci_max"):
                 cname_ci_max = cname
 
         if cname_ci_min is not None:
@@ -198,7 +198,6 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
     forecast_hour_tick_multiplier = score_plots_params["forecast_hour_tick_multiplier"]
     max_lead_hour = score_plots_params.get("max_lead_hour", None)
     min_lead_hour = score_plots_params.get("min_lead_hour", None)
-
 
     nbootstrap_default = 100
 
@@ -326,7 +325,7 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
                 shared_ax = ax
 
             if len(col_names) > 1:
-                logging.warning(f"Using member: {col_names[0]}")
+                logging.warning(f"Using member: {col_names[member_col_index]}")
 
             logger.debug(f"i={i}, st_id={st_id}")
 

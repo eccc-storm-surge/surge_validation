@@ -37,23 +37,23 @@ def fc(station_dict=default_params.station_dict,
     img_dir = Path(f"data/plots/ci3_seasonal_cycles/{label}")
 
     exp_id_to_path = OrderedDict([
-        ("RDSPS (FCST-REF, Surge)",
-            next((inp_data_root / "rdsps").rglob(f"data_for_scoring_*rdsps*_surge_ref_*{st_s}_{en_s}/surge*.dat"))),
-        ("GDSPS (FCST-NEW, Surge)",
-            next((inp_data_root / "gdsps").rglob(f"data_for_scoring_*gdsps*_surge_new_*{st_s}_{en_s}/surge*.dat"))),
+        ("RDSPS (PA, Surge)",
+            inp_data_root / "rdsps/ac2019-2020/data_for_scoring_rdsps_fcst_ACH2019-2020_surge_ref_nofilt_2019070321_2020063021/surge_rdsps_fcst_ACH2019-2020_surge_ref_nofilt.dat"),
+        ("GDSPS (PA, Surge)",
+            inp_data_root / "gdsps/ac2019-2020/data_for_scoring_gdsps_fcst_AC2019-2020_surge_ref_nofilt_2019070409_2020070103/surge_gdsps_fcst_AC2019-2020_surge_ref_nofilt.dat"),
     ])
 
     exp_id_labels = list(exp_id_to_path)
 
     b2b_nhours = {
-        lbl: 12 for lbl in exp_id_labels
+        lbl: 7 for lbl in exp_id_labels
     }
 
     score_plots_params = {
-        "forecast_hour_tick_multiplier": 24,
-        "max_lead_hour": 240,
+        "forecast_hour_tick_multiplier": 1,
+        "max_lead_hour": 6,
         "min_lead_hour": 0,
-        "agg_hours": [0, 12],
+        "agg_hours": [0, 0],
         "single_panel_figsize": (7.5, 5.5)
     }
 
@@ -74,12 +74,9 @@ def fc(station_dict=default_params.station_dict,
         "score_map_colorbar_position": "right",
         "plot_spectra": True,
         "plot_tide_constituents": True,
-        "b2b_min_lead_hour": 0,
+        "b2b_min_lead_hour": 1,
         # number of forecasts to ignore to avoid transients from filtering
-        OptionNames.IGNORE_EDGE_FORECASTS: {
-            "beg": 3,
-            "end": 3
-        }
+        OptionNames.IGNORE_EDGE_FORECASTS: None
 
     }
 
@@ -98,7 +95,7 @@ def fc(station_dict=default_params.station_dict,
 
     compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
                      exp_id_list=exp_id_labels,
-                     img_dir=img_dir, qq_lead_hour_range=range(12, 12, 12),
+                     img_dir=img_dir, qq_lead_hour_range=range(6, 6, 1),
                      b2b_nhours=b2b_nhours,
                      score_plots_params=score_plots_params,
                      options=options, st_time=st_date, en_time=en_date,
@@ -110,9 +107,9 @@ def main():
     # st_date = datetime(2017, 1, 1, 0)
     # en_date = datetime(2017, 12, 31, 18)
 
-    st_date = datetime(2020, 1, 1, 0)
-    en_date = datetime(2020, 4, 10, 12)
-    EXP_ID = "GDSPS_NEW_vs_RDSPS_REF_FCST_HIV2020_SURGE_BV3"
+    st_date = datetime(2019, 7, 4, 0)
+    en_date = datetime(2020, 6, 30, 21)
+    EXP_ID = "GDSPS_REF_vs_RDSPS_REF_PA_AC2019-2020_SURGE-nofilt"
 
     logger = log_utils.get_logger(__name__)
     logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)

@@ -78,9 +78,10 @@ def fc(station_dict=default_params.station_dict,
     }
 
     options = {
-        "do_full_forecast_timeseries": False,
-        "calculate_scores": True,
-        "do_b2b_timeseries": True,
+        "do_full_forecast_timeseries": True,
+        "calculate_scores": False,
+        "do_b2b_timeseries": False,
+        "do_b2b_timeseries_interactive": False,
         "b2b_split_seasons": b2b_split_seasons,
         "score_map_figsize": (13.5, 6),
         "score_map_marker_size": 20,
@@ -88,7 +89,7 @@ def fc(station_dict=default_params.station_dict,
         "score_map_fontsize": 13,
         "score_map_projection":  LambertConformal(),
         "score_map_colorbar_position": "bottom",
-        "plot_spectra": True,
+        "plot_spectra": False,
         "plot_tide_constituents": False,
         # number of forecasts to ignore to avoid transients from filtering
         OptionNames.IGNORE_EDGE_FORECASTS: {

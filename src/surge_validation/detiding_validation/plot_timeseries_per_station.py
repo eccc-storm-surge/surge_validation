@@ -150,6 +150,8 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     logger = log_utils.get_logger(__name__)
     if isinstance(run_freq_hours, int):
         run_freq_hours = {label: run_freq_hours for label in model_label_list}
+    
+    logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
 
     model_label_to_color = OrderedDict(zip(model_label_list, model_colors))
     model_label_to_series = OrderedDict()
@@ -160,7 +162,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
     st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
-    st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
+    # st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
     st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
     st_sel_obs = st_sel_obs.asfreq("60T")[io_manager.OBS_COL_NAME]
 
@@ -183,7 +185,9 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
             logger.warning(f"No model data data for {st_id}, skipping")
             continue
 
+        logger.debug("\n mod data \n %s", st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
+        logger.debug("\n duplicalted dates \n %s", st_sel_mod[st_sel_mod.index.duplicated()])
         to_plot = st_sel_mod.asfreq("60T")["mod" + member_id]
 
         if remove_ndays_mean is not None:
@@ -220,7 +224,8 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
-    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.pdf"), bbox_inches="tight")
+    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.pdf"), bbox_inches="tight",
+                transparent=True)
     plt.close(fig)
     return label_to_scores
 
@@ -256,6 +261,8 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
 
     fig = plt.figure(figsize=(8, 6), dpi=96)
     axes = [fig.gca()]
+
+    logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
 
     for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
         st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
@@ -394,7 +401,7 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
             logger.warning(f"No obs data for {st_id} and {do}, skipping it.")
             continue
 
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(10, 8), dpi=96)
         axes = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[1, 0])]
 
         only_one_model_to_plot = len(set(model_label_list)) == 1
@@ -469,12 +476,14 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
                          [Line2D([0], [0], color=c, label=f"{model_label}", linewidth=linewidth) for c, model_label in
                           zip(model_colors, model_label_list)]
 
-        axes[0].legend(title=station_dict[st_id], handles=legend_handles)
+        axes[0].legend(title=station_dict[st_id], handles=legend_handles,
+                       loc="upper left", bbox_to_anchor=[1, 1])
         axes[0].grid(which="minor", linestyle="dashed", linewidth=0.3)
         if ylim is not None:
             axes[0].set_ylim(*ylim)
 
-        plt.savefig(str(img_dir / f"{st_id}_{do:%Y%m%d%H}.png"), dpi=300, bbox_inches="tight")
+        plt.savefig(str(img_dir / f"{st_id}_{do:%Y%m%d%H}.pdf"),
+                    bbox_inches="tight", transparent=True)
         plt.close(axes[0].figure)
 
 

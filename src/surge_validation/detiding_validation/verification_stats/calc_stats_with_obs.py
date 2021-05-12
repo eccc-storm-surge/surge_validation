@@ -82,13 +82,14 @@ def stde(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05, **kwargs):
     if nbootstrap > 1:
 
         for c in mod_columns:
+            col_name = f"{c}{suffix}"
             # get confidence intervals
-            ci_ranges = calculate_conf_intervals(g[f"{c}{suffix}"], np.std,
+            ci_ranges = calculate_conf_intervals(g[col_name], np.std,
                                                  nbootstrap=nbootstrap,
                                                  alpha_ci=alpha_ci)
 
-            ci_min_cname = f"{c}_ci_min"
-            ci_max_cname = f"{c}_ci_max"
+            ci_min_cname = f"{col_name}_ci_min"
+            ci_max_cname = f"{col_name}_ci_max"
 
             res_by_station_and_vhour[ci_min_cname] = res_by_station_and_vhour.index.map(lambda i: ci_ranges[i][0])
             res_by_station_and_vhour[ci_max_cname] = res_by_station_and_vhour.index.map(lambda i: ci_ranges[i][1])
@@ -153,8 +154,8 @@ def gamma(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05, **kwargs):
                                                  nbootstrap=nbootstrap,
                                                  alpha_ci=alpha_ci, rnd=rnd)
 
-            ci_min_cname = f"{c}_ci_min"
-            ci_max_cname = f"{c}_ci_max"
+            ci_min_cname = f"{colname}_ci_min"
+            ci_max_cname = f"{colname}_ci_max"
 
             res_by_station_and_vhour[ci_min_cname] = res_by_station_and_vhour.index.map(
                 lambda i: ci_ranges_num[i][0] / ci_ranges_den[i][1])
@@ -228,8 +229,8 @@ def gamma_varobsallvhour(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05
                                                  nbootstrap=nbootstrap,
                                                  alpha_ci=alpha_ci, rnd=rnd)
 
-            ci_min_cname = f"{c}_ci_min"
-            ci_max_cname = f"{c}_ci_max"
+            ci_min_cname = f"{colname}_ci_min"
+            ci_max_cname = f"{colname}_ci_max"
 
             res_by_station_and_vhour[ci_min_cname] = res_by_station_and_vhour.index.map(
                 lambda i: ci_ranges_num[i][0] / ci_ranges_den[i[0]][1])
