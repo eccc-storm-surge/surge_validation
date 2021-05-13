@@ -24,6 +24,12 @@ MODEL_AND_OBS_ONE_FILE = 2
 known_formats = [SPACE_SEPARATED_XDAT, MODEL_AND_OBS_ONE_FILE]
 
 
+def parse_valid_time(tok):
+    try:
+        return datetime.strptime(tok, "%Y%m%d%H%M")
+    except ValueError:
+        return datetime.strptime(tok, "%Y%m%d%H")  # legacy format
+
 def read_wl_station_data(data_store, station_dict=None,
                          fname_suffix=".dat",
                          max_lead_hour=None,
@@ -49,10 +55,10 @@ def read_wl_station_data(data_store, station_dict=None,
     logging.info(f"Reading {data_store_p} ...")
 
     df = pd.read_csv(data_store_p, sep=r"\s+", header=None, index_col=False,
-                     converters={0: int,
+                     converters={0: float,
                                  1: str,
                                  2: float, 3: float,
-                                 4: lambda s: datetime.strptime(s, "%Y%m%d%H")})
+                                 4: parse_valid_time})
     if data_store_p.is_file():
 
         col_names = [VALIDH_COL_NAME, STID_COL_NAME, LAT_COL_NAME, LON_COL_NAME, TIME_COL_NAME, OBS_COL_NAME, ]

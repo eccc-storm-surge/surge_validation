@@ -46,6 +46,8 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
     lbl_list = sorted(lbl_to_station_to_ts)
 
+    nfft_fraction = 1.25
+
     for station_id in all_stations:
         logger.info(f"Plotting power spectre for {station_id}")
         fig = plt.figure(figsize=(8, 6))
@@ -63,7 +65,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 ts_obs = lbl_to_station_to_ts[lbl][station_id][io_manager.OBS_COL_NAME].asfreq(fs)
                 x = np.where(ts_obs.isna(), 0, ts_obs.values)
                 # freq, px_obs = crosspec(m, x)
-                freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(0.25*len(x)))
+                freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(nfft_fraction * len(x)))
 
                 freq = freq * freq_mul
                 sel = freq <= cpd_max
@@ -84,7 +86,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 ts = lbl_to_station_to_ts[lbl][station_id][c].asfreq(fs)
                 # freq, px = crosspec(m, ts.values)
                 x = np.where(ts.isna(), 0, ts.values)
-                freq, px = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(0.5*len(x)))
+                freq, px = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(nfft_fraction * len(x)))
                 # print(np.real(px), np.imag(px))
 
                 freq = freq * freq_mul
@@ -104,7 +106,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
         ax.set_ylabel(f"m$^2$ / Hz")
         # plt.show()
 
-        fig.savefig(img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}_csd.png",
+        fig.savefig(img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}_csd.pdf",
                     bbox_inches="tight")
         plt.close(fig)
 

@@ -44,7 +44,7 @@ def fc(station_dict=default_params.station_dict,
     exp_id_labels = list(exp_id_to_path)
 
     b2b_nhours = {
-        lbl: 25 for lbl in exp_id_labels
+        lbl: 1 for lbl in exp_id_labels
     }
 
     score_plots_params = {

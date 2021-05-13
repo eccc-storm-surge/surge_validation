@@ -37,7 +37,8 @@ def calculate_conf_intervals(grouped_data, statfunc, nbootstrap=0, alpha_ci=0.05
                                                  random_state=rnd)
         except ImportError:
             logger.warn("resample module is not installed, using simple percentile "
-                        "method for bootstrap confidence interval")
+                        "method for bootstrap confidence interval "
+                        "(not recommended as does not include bias correction and acceleration)")
             bst = rnd.choice(data, size=(nbootstrap, len(data)), replace=True)
             all_stat = statfunc(bst, axis=1)
             ci_min, ci_max = np.percentile(all_stat, [alpha_ci / 2. * 100, 100 - alpha_ci / 2. * 100])
