@@ -26,9 +26,9 @@ known_formats = [SPACE_SEPARATED_XDAT, MODEL_AND_OBS_ONE_FILE]
 
 def parse_valid_time(tok):
     try:
-        return datetime.strptime(tok, "%Y%m%d%H%M")
-    except ValueError:
         return datetime.strptime(tok, "%Y%m%d%H")  # legacy format
+    except ValueError:
+        return datetime.strptime(tok, "%Y%m%d%H%M")
 
 def read_wl_station_data(data_store, station_dict=None,
                          fname_suffix=".dat",
@@ -70,7 +70,7 @@ def read_wl_station_data(data_store, station_dict=None,
 
         df.columns = col_names
 
-        df[DATEO_COL_NAME] = (df[TIME_COL_NAME] - pd.TimedeltaIndex(df[VALIDH_COL_NAME], unit="hour"))
+        df[DATEO_COL_NAME] = (df[TIME_COL_NAME] - pd.TimedeltaIndex((df[VALIDH_COL_NAME] * 3600.).astype(int), unit="seconds"))
 
         # select only data for selected station ids
         if station_dict is not None:
