@@ -120,7 +120,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
                line_width=linewidth)
         
         p.square(pd.to_datetime(to_plot.index), to_plot.values, color=model_color, 
-                 line_width=linewidth, fill_color=model_color)
+                 line_width=linewidth, fill_color=model_color, legend_label=model_label)
 
         model_label_to_series[model_label] = to_plot
 
@@ -134,7 +134,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
             line_width=linewidth, legend_label="Obs")
     
     p.circle(pd.to_datetime(to_plot.index), to_plot.values, color="black",  
-            line_width=linewidth, fill_color="white")
+            line_width=linewidth, fill_color="white", legend_label="Obs")
 
     model_label_to_series["obs"] = st_sel_obs
 
