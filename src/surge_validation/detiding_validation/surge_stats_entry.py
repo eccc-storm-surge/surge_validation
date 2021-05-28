@@ -396,7 +396,8 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
                                ylimits=default_params.vname_to_limits[suffix[1:]])
 
         style_axes(ax, locator_base=forecast_hour_tick_multiplier)
-        ax.legend(loc="upper left", title=stats_functions_params[suffix].get("legend_title", None))
+        ax.legend(loc="upper left", bbox_to_anchor=(1, 1), 
+                  title=stats_functions_params[suffix].get("legend_title", None))
         fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
         if max_lead_hour is not None:
