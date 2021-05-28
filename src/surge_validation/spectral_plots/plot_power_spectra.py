@@ -34,6 +34,11 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
     img_dir.mkdir(exist_ok=True, parents=True)
 
+    # cleanup
+    for f in img_dir.iterdir():
+        if f.is_file():
+            f.unlink()
+
     # get list off all stations
     all_stations = set()
 
