@@ -285,13 +285,14 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
 
     logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
 
+    st_sel_obs_prev = None
     for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
         st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
         st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label]]
         st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
         st_sel_mod.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
-        st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
+        # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
             logger.warning(f"No model data data for {st_id}, skipping")
@@ -299,7 +300,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
         # calculate the bias
-        to_plot = st_sel_mod["mod" + member_id] - data_hourly["obs"]
+        to_plot = st_sel_mod["mod" + member_id] - st_sel_mod["obs"]
 
         if remove_ndays_mean is not None:
             to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
@@ -307,7 +308,10 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
         to_plot.plot(ax=axes[0], color=model_color, legend=False, grid=True, linewidth=linewidth)
 
         model_label_to_series[model_label] = st_sel_mod["mod" + member_id]
-        model_label_to_series["obs"] = st_sel_mod["obs"]
+        if not "obs" in model_label_to_series:
+            model_label_to_series["obs"] = st_sel_mod["obs"]
+        else:
+            model_label_to_series["obs"] = model_label_to_series["obs"].combine_first(st_sel_mod["obs"])
 
     same_mod = len(set(model_label_list)) == 1
 
