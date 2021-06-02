@@ -42,7 +42,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
                                              st_time=None, en_time=None, img_dir=None, model_label_list=(),
                                              model_colors=("b", "r"),
                                              run_freq_hours=6, ylim=None, linewidth=1, member_id="",
-                                             remove_ndays_mean=None, min_valid_hour=0):
+                                             remove_ndays_mean=None, min_valid_hour=0, **kwargs):
     """
     :param label_to_scores: labels to scores, if provided will be shown in a table
     :param remove_ndays_mean: before plotting n-day mean is removed (rolling)

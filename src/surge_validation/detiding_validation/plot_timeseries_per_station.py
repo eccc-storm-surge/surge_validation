@@ -2,6 +2,7 @@ import logging
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
+import pandas as pd
 
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -160,14 +161,24 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     model_label_to_series = OrderedDict()
 
     # Select and plot obs on top of the model data
-    st_sel_obs = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id].copy()
-    st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label_list[0]]]
-    st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
+    st_sel_obs_prev = None
+    for swl in swl_list:
+        st_sel_obs = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
+        st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label_list[0]]]
+        st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
-    st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
-    # st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
-    st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
-    st_sel_obs = st_sel_obs.asfreq("60T")[io_manager.OBS_COL_NAME]
+        st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
+        # st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
+        st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
+        st_sel_obs = st_sel_obs[io_manager.OBS_COL_NAME]
+
+        if st_sel_obs_prev is not None:
+            st_sel_obs = st_sel_obs.combine_first(st_sel_obs_prev)
+
+        st_sel_obs_prev = st_sel_obs
+
+    
+
 
     if len(st_sel_obs) == 0:
         logging.warning(f"No obs data for {st_id}, skipping it.")
@@ -185,13 +196,13 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
-            logger.warning(f"No model data data for {st_id}, skipping")
+            logger.warning(f"No model data for {st_id}, skipping")
             continue
 
         logger.debug("\n mod data \n %s", st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
         logger.debug("\n duplicalted dates \n %s", st_sel_mod[st_sel_mod.index.duplicated()])
-        to_plot = st_sel_mod.asfreq("60T")["mod" + member_id]
+        to_plot = st_sel_mod["mod" + member_id]
 
         if remove_ndays_mean is not None:
             to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
@@ -239,7 +250,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
                                                   model_colors=("b", "r"),
                                                   run_freq_hours=6, ylim=None, linewidth=1, member_id="",
                                                   remove_ndays_mean=None,
-                                                  min_valid_hour=0):
+                                                  min_valid_hour=0, **kwargs):
     """
     :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
     :param swl_list:
