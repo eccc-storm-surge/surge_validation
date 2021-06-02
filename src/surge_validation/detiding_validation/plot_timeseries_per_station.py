@@ -129,7 +129,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
                                              st_time=None, en_time=None, img_dir=None, model_label_list=(),
                                              model_colors=("b", "r"),
                                              run_freq_hours=6, ylim=None, linewidth=1, member_id="",
-                                             remove_ndays_mean=None, min_valid_hour=0):
+                                             remove_ndays_mean=None, min_valid_hour=0, options=None):
     """
     :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
     :param swl_list:
@@ -146,6 +146,9 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     :param member_id:
     :return: a dictionary of {label: {gamma2: value, sigma: value}}
     """
+
+    if options is None:
+        options = {}
 
     logger = log_utils.get_logger(__name__)
     if isinstance(run_freq_hours, int):
@@ -170,7 +173,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         logging.warning(f"No obs data for {st_id}, skipping it.")
         return {}
 
-    fig = plt.figure(figsize=(13.5, 6), dpi=96)
+    fig = plt.figure(figsize=options.get("b2b_timeseries_figsize", (13.5, 6)), dpi=96)
     axes = [fig.gca()]
 
     for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
@@ -518,7 +521,7 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
                                       run_freq_hours=12, linewidth=2,
                                       b2b_cutoff_hours=1000, member_id="",
                                       split_seasons=None,
-                                      remove_ndays_mean=None, min_valid_hour=0):
+                                      remove_ndays_mean=None, min_valid_hour=0, options: dict = None):
     """
     Use for comparing timeseries, more or less general interface
     :param split_seasons: dict {season_label: month_list}
@@ -533,6 +536,10 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
     :param en_time:
     :return: dictionary of gamma^2 and sigma scores for each station
     """
+
+    if options is None:
+        options = {}
+
     if plots_dir is None:
         plots_dir = Path(f"data/plots/detiding_comparisons/{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}_rdsps_par_vs_opr")
 
@@ -564,7 +571,8 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
         station_dict=station_dict,
         member_id=member_id,
         remove_ndays_mean=remove_ndays_mean,
-        min_valid_hour=min_valid_hour
+        min_valid_hour=min_valid_hour,
+        options=options
     )
 
     kwargs_season = kwargs.copy()
