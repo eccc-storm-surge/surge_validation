@@ -212,7 +212,8 @@ def compare_forecast(station_dict=default_params.station_dict,
                                     ts_plots_dir,
                                     station_dict=station_dict,
                                     st_time=st_time, en_time=en_time,
-                                    linewidth=0.3, member_id=member_id)
+                                    linewidth=0.3, member_id=member_id, 
+                                    options=options)
         future_list.append(fut)
 
     plot_spectra = options.get("plot_spectra", True)
@@ -232,7 +233,8 @@ def compare_forecast(station_dict=default_params.station_dict,
                                         img_dir=spectra_plots_dir,
                                         lbl_to_station_to_ts=lbl_to_station_to_ts,
                                         lbl_to_color=exp_id_to_color,
-                                        station_dict=station_dict)
+                                        station_dict=station_dict,
+                                        options=options)
         future_list.append(fut)
 
     # plot constituents calculated using ttide
@@ -242,7 +244,8 @@ def compare_forecast(station_dict=default_params.station_dict,
             lbl_to_station_to_ts,
             img_dir=tide_plots_dir,
             lbl_to_color=exp_id_to_color,
-            station_dict=station_dict
+            station_dict=station_dict,
+            options=options
         )
 
     # plot talagrand plots

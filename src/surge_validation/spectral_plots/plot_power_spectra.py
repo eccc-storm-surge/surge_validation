@@ -20,7 +20,7 @@ from ..utils.strutils import stname_to_fname2
 def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                              lbl_to_color: dict,
                              station_dict=default_params.station_dict,
-                             fs=timedelta(hours=1), cpd_max=10):
+                             fs=timedelta(hours=1), cpd_max=10, **kwargs):
     """
     This plots spectra for stations using function developed by Natacha Bernier
     (see comments in utils/crosspec.py)
@@ -31,6 +31,9 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     create 1 plot per station
     """
     logger = log_utils.get_logger(__name__)
+
+    options = kwargs.get("options", {})
+    plot_file_format = options.get("plot_file_format", "pdf")
 
     img_dir.mkdir(exist_ok=True, parents=True)
 
@@ -111,7 +114,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
         ax.set_ylabel(f"m$^2$ / Hz")
         # plt.show()
 
-        fig.savefig(img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}_csd.pdf",
+        fig.savefig(img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}_csd.{plot_file_format}",
                     bbox_inches="tight")
         plt.close(fig)
 

@@ -49,9 +49,14 @@ def calc_tides_spectra(ts_data, dt=timedelta(hours=1), lat=None) -> TTideCon:
 def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                             lbl_to_color: dict,
                             station_dict=default_params.station_dict,
-                            fs=timedelta(hours=1)):
+                            fs=timedelta(hours=1), **kwargs):
     logger = log_utils.get_logger(__name__)
     img_dir.mkdir(exist_ok=True, parents=True)
+
+    options = kwargs.get("options", {})
+    plot_file_format = options.get("plot_file_format", "pdf")
+
+
 
     # cleanup the image dir
     for f in img_dir.iterdir():
@@ -184,7 +189,7 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
         ax_amp.legend()
 
-        img_file = img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}.pdf"
+        img_file = img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}.{plot_file_format}"
         fig.savefig(img_file, bbox_inches="tight", transparent=True)
         plt.close(fig)
 

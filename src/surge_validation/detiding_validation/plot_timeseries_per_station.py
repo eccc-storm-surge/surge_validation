@@ -151,6 +151,8 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     if options is None:
         options = {}
 
+    plot_file_format = options.get("plot_file_format", "pdf")
+
     logger = log_utils.get_logger(__name__)
     if isinstance(run_freq_hours, int):
         run_freq_hours = {label: run_freq_hours for label in model_label_list}
@@ -238,7 +240,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
-    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.pdf"), bbox_inches="tight",
+    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), bbox_inches="tight",
                 transparent=True)
     plt.close(fig)
     return label_to_scores
@@ -267,13 +269,18 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
     :param member_id:
     :return: a dictionary of {label: {gamma2: value, sigma: value}}
     """
+
+    options = kwargs.get("options", {})
+
+    plot_file_format = options.get("plot_file_format", "pdf")
+
     if isinstance(run_freq_hours, int):
         run_freq_hours = {label: run_freq_hours for label in model_label_list}
 
     model_label_to_color = OrderedDict(zip(model_label_list, model_colors))
     model_label_to_series = OrderedDict()
 
-    fig = plt.figure(figsize=(8, 6), dpi=96)
+    fig = plt.figure(figsize=options.get("b2b_timeseries_figsize", (13.5, 6)), dpi=96)
     axes = [fig.gca()]
 
     logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
@@ -291,17 +298,16 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
             return {}
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-        data_hourly = st_sel_mod.asfreq("60T")
         # calculate the bias
-        to_plot = data_hourly["mod" + member_id] - data_hourly["obs"]
+        to_plot = st_sel_mod["mod" + member_id] - data_hourly["obs"]
 
         if remove_ndays_mean is not None:
             to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
 
         to_plot.plot(ax=axes[0], color=model_color, legend=False, grid=True, linewidth=linewidth)
 
-        model_label_to_series[model_label] = data_hourly["mod" + member_id]
-        model_label_to_series["obs"] = data_hourly["obs"]
+        model_label_to_series[model_label] = st_sel_mod["mod" + member_id]
+        model_label_to_series["obs"] = st_sel_mod["obs"]
 
     same_mod = len(set(model_label_list)) == 1
 
@@ -320,7 +326,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
 
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
-    fig.savefig(str(img_dir / f"bias_{st_id}_{stname_to_fname2(station_dict[st_id])}.pdf"), bbox_inches="tight")
+    fig.savefig(str(img_dir / f"bias_{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), bbox_inches="tight")
     plt.close(fig)
     return label_to_scores
 
