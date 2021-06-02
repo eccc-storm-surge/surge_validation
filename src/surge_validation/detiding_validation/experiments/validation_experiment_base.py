@@ -55,7 +55,7 @@ def compare_forecast(station_dict=default_params.station_dict,
 
     logger = log_utils.get_logger(__name__)
 
-    process_pool = get_process_pool_executor()
+    process_pool = get_process_pool_executor(nprocs=options.get("nprocs", None))
     future_list = []
 
     set_default_plot_params()

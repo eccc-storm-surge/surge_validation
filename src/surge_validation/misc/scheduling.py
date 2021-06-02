@@ -6,10 +6,10 @@ DEFAULT_MAX_PROCESS_WORKERS = 20
 DEFAULT_MAX_THREAD_WORKERS = 4
 
 
-def get_process_pool_executor():
+def get_process_pool_executor(nprocs=DEFAULT_MAX_PROCESS_WORKERS):
     global _process_pool_executor
     if _process_pool_executor is None:
-        _process_pool_executor = ProcessPoolExecutor(max_workers=DEFAULT_MAX_PROCESS_WORKERS)
+        _process_pool_executor = ProcessPoolExecutor(max_workers=nprocs)
     return _process_pool_executor
 
 
