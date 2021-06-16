@@ -152,6 +152,9 @@ class OptionNames(object):
     # list of lead hours for talagrand rank plots [(lead11, lead12), (lead21, lead22), ...]
     TALAGRAND_LEADS_LIST = "talagrand_leads_list"
 
+    # output format of the image plots: pdf, png...
+    PLOT_FILE_FMT = "plot_file_format"
+
 
 def get_color_list():
     """

@@ -33,7 +33,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     logger = log_utils.get_logger(__name__)
 
     options = kwargs.get("options", {})
-    plot_file_format = options.get("plot_file_format", "pdf")
+    plot_file_format = options.get(default_params.OptionNames.PLOT_FILE_FMT, "pdf")
 
     img_dir.mkdir(exist_ok=True, parents=True)
 

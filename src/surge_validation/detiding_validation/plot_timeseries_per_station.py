@@ -382,9 +382,12 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes = None):
 def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, station_dict=default_params.station_dict,
                                                              st_time=None, en_time=None, img_dir=None,
                                                              model_label_list=(), model_colors=("b", "r"),
-                                                             ylim=None, linewidth=1, member_id=""):
+                                                             ylim=None, linewidth=1, member_id="", options=None):
     # detided data
     st_sel_by_station = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id]
+
+    if options is None:
+        options = {}
 
     if len(st_sel_by_station) == 0:
         logger.info(f"No data for {st_id}, skipping")
@@ -506,7 +509,8 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
         if ylim is not None:
             axes[0].set_ylim(*ylim)
 
-        plt.savefig(str(img_dir / f"{st_id}_{do:%Y%m%d%H}.pdf"),
+        fmt = options.get(default_params.OptionNames.PLOT_FILE_FMT, "pdf")
+        plt.savefig(str(img_dir / f"{st_id}_{do:%Y%m%d%H}.{fmt}"),
                     bbox_inches="tight", transparent=True)
         plt.close(axes[0].figure)
 
@@ -662,7 +666,7 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
 def compare_sims_timeseries_one_plot_per_fc(data_labels: list = None, data_paths: dict = None, data_colors: dict = None,
                                             plots_dir: Path = None,
                                             station_dict=default_params.station_dict, st_time=None, en_time=None,
-                                            linewidth=1, member_id=""):
+                                            linewidth=1, member_id="", options=None):
     """
     Use for comparing timeseries, more or less general interface
     :param data_labels:
