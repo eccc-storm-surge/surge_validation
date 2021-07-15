@@ -152,3 +152,30 @@ def get_station_id_intersect(data_path_dict: dict) -> set:
             res = cur_set.intersection(res)
 
     return res
+
+
+def read_station_dict_from_obs(obs_files) -> dict:
+    """Read station id to name mapping from an obs file or a list of obs files
+
+    Args:
+        obs_files (list or single path): 
+
+    Returns:
+        dict: mapping {station_id: station_name}
+    """
+    result = {}
+    if isinstance(obs_files, list):
+        for obs in obs_files:
+            result.update(read_station_dict_from_obs(obs))    
+    
+    else:
+        obs = Path(obs_files)
+        assert obs.exists()
+
+        df = pd.read_csv(obs, skiprows=2, sep=r"\s+", converters={"NO": str})
+
+        st_names = df["ID"]
+        if "DATA.COUNTRY" in df:
+            st_names = st_names + ", " + df["DATA.COUNTRY"]
+
+        return dict(zip(df["NO"], st_names))

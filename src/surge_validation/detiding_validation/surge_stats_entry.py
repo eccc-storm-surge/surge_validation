@@ -619,16 +619,22 @@ def aggregate_in_time(lbl_to_data, agg_hours=0):
 
     for lbl, data in lbl_to_data.items():
 
-        res[lbl] = data.copy()
+        df = data.copy()
 
-        vh_orig = res[lbl][io_manager.VALIDH_COL_NAME]
+        vh_orig = df[io_manager.VALIDH_COL_NAME]
 
-        res[lbl].loc[:, io_manager.VALIDH_COL_NAME] = (res[lbl].loc[:, io_manager.VALIDH_COL_NAME] // agg_hours) * agg_hours
+        df.loc[:, io_manager.VALIDH_COL_NAME] = (df.loc[:, io_manager.VALIDH_COL_NAME] // agg_hours) * agg_hours
 
         max_vh = (vh_orig.max() // agg_hours) * agg_hours
 
         # select so that each interval is represented by the same number of points (the rest is discarded)
-        res[lbl] = res[lbl][res[lbl][io_manager.VALIDH_COL_NAME] < max_vh]
+        df = df[df[io_manager.VALIDH_COL_NAME] < max_vh]
+
+        if len(df) == 0:
+            logger.info(f"Not doing aggregated scores for {lbl}, not enough data")
+            continue
+        
+        res[lbl] = df
 
     return res
 

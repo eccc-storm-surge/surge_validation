@@ -68,7 +68,7 @@ def stde(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05, **kwargs):
 
     tmp_data = pd.DataFrame(index=data.index,
                             data={VALIDH_COL_NAME: data[VALIDH_COL_NAME],
-                                  "station_id": data["station_id"]})
+                                  STID_COL_NAME: data[STID_COL_NAME]})
 
     suffix = "_stde"
 

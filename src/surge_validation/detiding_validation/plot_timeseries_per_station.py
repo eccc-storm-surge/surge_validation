@@ -361,7 +361,8 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes = None):
         mod -= mod.mean()
         obs_sel -= obs_sel.mean()
 
-        gamma2 = (mod - obs_sel).std() ** 2 / obs_sel.std() ** 2
+        obs_std = obs_sel.std() ** 2
+        gamma2 = (mod - obs_sel).std() ** 2 / obs_std if abs(obs_std) > 0 else np.Inf
         sigma = (mod - obs_sel).std()
         corr = mod.corr(obs_sel)
 

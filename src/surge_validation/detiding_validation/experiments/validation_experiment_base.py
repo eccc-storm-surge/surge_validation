@@ -112,6 +112,11 @@ def compare_forecast(station_dict=default_params.station_dict,
 
         for agg_hour in agg_periods:
             lbl_to_data_agg = surge_stats_entry.aggregate_in_time(lbl_to_data=lbl_to_data, agg_hours=agg_hour)
+
+            if len(lbl_to_data_agg) == 0:
+                logger.info(f"Nothing to aggregate for {agg_hour} hourly intervals, skipping")
+                continue
+
             agg_img_dir = img_dir / f"agg_{agg_hour}hrs"
             # compare_n_simulations(lbl_to_data_agg, exp_id_to_color, agg_img_dir,
             #                       station_dict=station_dict,
