@@ -241,11 +241,11 @@ def main():
                         help="Path to the folder, where to store plots",
                         required=False, type=int)
 
-    parser.add_argument("--bsslim", nargs="?",
+    parser.add_argument("--bsslim", nargs="+",
                         default=STAT_TO_YLIM[BSS_MARK],
                         required=False, type=float, help="y axis limits on the plot (BSS)")
 
-    parser.add_argument("--crpslim", nargs="?", default=STAT_TO_YLIM[CRPS_MARK],
+    parser.add_argument("--crpslim", nargs="+", default=STAT_TO_YLIM[CRPS_MARK],
                         required=False, type=float, help="y axis limits on the plot (CRPS)")
 
 
