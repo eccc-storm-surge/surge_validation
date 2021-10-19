@@ -168,9 +168,12 @@ def get_color_list():
     first = [c for c in colors.TABLEAU_COLORS if "blue" in c][:1]
     
     second = [c for c in colors.TABLEAU_COLORS if "red" in c][:1]
-    others = [c for c in colors.TABLEAU_COLORS if c not in first + second]
 
-    return first + second + others
+    third = [c for c in colors.TABLEAU_COLORS if "green" in c][:1]
+
+    others = [c for c in colors.TABLEAU_COLORS if c not in first + second + third]
+
+    return first + second + third + others
 
 
 def get_station_dict():
