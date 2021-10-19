@@ -510,7 +510,7 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
         if ylim is not None:
             axes[0].set_ylim(*ylim)
 
-        fmt = options.get(default_params.OptionNames.PLOT_FILE_FMT, "pdf")
+        fmt = options.get(default_params.OptionNames.PLOT_FILE_FMT, "png")
         plt.savefig(str(img_dir / f"{st_id}_{do:%Y%m%d%H}.{fmt}"),
                     bbox_inches="tight", transparent=True)
         plt.close(axes[0].figure)
