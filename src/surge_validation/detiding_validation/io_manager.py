@@ -142,17 +142,11 @@ def get_station_id_intersect(data_path_dict: dict) -> set:
     return intersection of station ids available in all the sources
     :param data_path_dict:
     """
-    res = None
-
-    for _, pth in data_path_dict.items():
-        cur_set = get_station_ids(pth)
-        if res is None:
-            res = cur_set
-        else:
-            res = cur_set.intersection(res)
-
-    return res
-
+    
+    return set.intersection(*[
+        get_station_ids(pth) for _, pth in data_path_dict.items()
+    ])
+    
 
 def read_station_dict_from_obs(obs_files) -> dict:
     """Read station id to name mapping from an obs file or a list of obs files

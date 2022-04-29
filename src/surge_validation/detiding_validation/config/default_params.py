@@ -156,12 +156,30 @@ class OptionNames(object):
     PLOT_FILE_FMT = "plot_file_format"
 
 
+# set it to the list of colors to force color order
+CUSTOM_COLOR_LIST = None
+
 def get_color_list():
     """
     get list of colors in the conventional order [b, r, ....]
     :return:
     """
     from matplotlib import colors
+
+    # return list of colors in the specified order
+    if CUSTOM_COLOR_LIST is not None:
+        clist = []
+        for c in CUSTOM_COLOR_LIST:
+            for c_known in colors.TABLEAU_COLORS:
+                if c in c_known:
+                    clist.append(c_known)
+                    break
+
+        msg = f"""Could not find some of the specified colors. 
+                  Specified:\n{CUSTOM_COLOR_LIST}\n Found:\n{clist}"""
+
+        assert len(clist) == len(CUSTOM_COLOR_LIST), msg
+        return clist
 
     # put blue, red, others in order
 

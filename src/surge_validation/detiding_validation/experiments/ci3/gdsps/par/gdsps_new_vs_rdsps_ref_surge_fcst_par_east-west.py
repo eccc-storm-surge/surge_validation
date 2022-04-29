@@ -1,4 +1,5 @@
 """
+= GDSPS ===============
 """
 import logging
 from collections import OrderedDict
@@ -11,8 +12,10 @@ from surge_validation.detiding_validation.config import default_params
 from datetime import datetime
 import pandas as pd
 
+from surge_validation.detiding_validation.config.default_params import OptionNames
 from surge_validation.detiding_validation.experiments.validation_experiment_base import compare_forecast
 
+# EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_V3"
 
 
 # generalized plotting to several simulations
@@ -22,7 +25,7 @@ from surge_validation.utils import log_utils
 def fc(station_dict=default_params.station_dict,
        st_date=None,
        en_date=None,
-       exp_id="NOT_SET"):
+       exp_id=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
     inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/ci3/")
@@ -31,25 +34,25 @@ def fc(station_dict=default_params.station_dict,
     en_s = f"{en_date:%Y%m%d%H}"
 
     label = f"{exp_id}_{st_s}_{en_s}"
-    img_dir = Path(f"data/plots/ci3_seasonal_cycles/ciopsw/{label}")
+    img_dir = Path(f"data/plots/ci3_seasonal_cycles/par/GDSPS/{label}")
 
+
+    default_params.CUSTOM_COLOR_LIST = ["red", ]
     exp_id_to_path = OrderedDict([
-        ("CIOPSW (FCST-REF, TWL)",
-            next((inp_data_root / "ciopsw/par").rglob(f"data_for_scoring_*ciopsw*_ref_*twl_{st_s}_{en_s}/surge*.dat"))),
-        ("CIOPSW (FCST-NEW, TWL)",
-            next((inp_data_root / "ciopsw/par").rglob(f"data_for_scoring_*ciopsw*_new_*twl_{st_s}_{en_s}/surge*.dat"))),
+        ("GDSPS (FCST-NEW, Surge)",
+            next((inp_data_root / "gdsps/par/na/").rglob(f"data_for_scoring_*gdsps*_surge_new_*{st_s}_{en_s}/surge*.dat"))),
     ])
 
     exp_id_labels = list(exp_id_to_path)
 
     b2b_nhours = {
-        lbl: 25 for lbl in exp_id_labels
+        lbl: 12 for lbl in exp_id_labels
     }
 
     score_plots_params = {
-        "forecast_hour_tick_multiplier": 6,
-        "max_lead_hour": 49,
-        "min_lead_hour": 1,
+        "forecast_hour_tick_multiplier": 24,
+        "max_lead_hour": 240,
+        "min_lead_hour": 0,
         "agg_hours": [0, 12],
         "single_panel_figsize": (7.5, 5.5)
     }
@@ -63,19 +66,19 @@ def fc(station_dict=default_params.station_dict,
         "calculate_scores": True,
         "do_b2b_timeseries": True,
         "b2b_split_seasons": b2b_split_seasons,
-        "score_map_figsize": (16, 10),
-        "score_map_marker_size": 80,
-        "score_map_colorbar_fraction": "8%",
+        "score_map_figsize": (13.5, 8),
+        "score_map_marker_size": 100,
+        "score_map_colorbar_fraction": "2%",
         "score_map_fontsize": 13,
         "score_map_projection":  LambertConformal(),
         "score_map_colorbar_position": "right",
         "plot_spectra": True,
         "plot_tide_constituents": True,
-        "b2b_min_lead_hour": 1,
+        "b2b_min_lead_hour": 0,
         # number of forecasts to ignore to avoid transients from filtering
-        default_params.OptionNames.IGNORE_EDGE_FORECASTS: {
+        OptionNames.IGNORE_EDGE_FORECASTS: {
             "beg": 3,
-            "end": 6
+            "end": 3
         }
 
     }
@@ -107,13 +110,15 @@ def main():
     # st_date = datetime(2017, 1, 1, 0)
     # en_date = datetime(2017, 12, 31, 18)
 
-    st_date = datetime(2021, 8, 5, 0)
-    en_date = datetime(2021, 9, 26, 0)
-    EXP_ID = "CIOPSW_REF_vs_CIOPSW_NEW_FCST_PAR_TWL"
+    st_date = datetime(2021, 7, 16, 0)
+    en_date = datetime(2021, 10, 18, 0)
+    EXP_ID = "GDSPS_NEW_vs_RDSPS_REF_FCST_PAR_SURGE_EAST-WEST"
 
     logger = log_utils.get_logger(__name__)
     logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)
-    station_dict = default_params.station_dict.copy()
+    # station_dict = default_params.station_dict.copy()
+
+    station_dict = io_manager.read_station_dict_from_obs("/home/olh001/Python/obs_to_grid_mapping/gdsps/gdsps_NA_opt_v012.obs")
     fc(station_dict=station_dict, st_date=st_date, en_date=en_date, exp_id=EXP_ID)
 
 

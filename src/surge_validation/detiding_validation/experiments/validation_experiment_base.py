@@ -176,7 +176,7 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                                                     member_id=member_id,
                                                                                     split_seasons=split_seasons,
                                                                                     remove_ndays_mean=options.get("b2b_remove_ndays_mean", None),
-                                                                                    min_valid_hour=options.get("min_lead_hour", 0),
+                                                                                    min_valid_hour=options.get("b2b_min_lead_hour", 0),
                                                                                     options=options)
 
         fut = process_pool.submit(plot_score_maps,
