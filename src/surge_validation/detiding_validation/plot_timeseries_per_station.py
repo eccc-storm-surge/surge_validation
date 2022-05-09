@@ -151,7 +151,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     if options is None:
         options = {}
 
-    plot_file_format = options.get("plot_file_format", "pdf")
+    plot_file_format = options.get("plot_file_format", "png")
 
     logger = log_utils.get_logger(__name__)
     if isinstance(run_freq_hours, int):
@@ -272,7 +272,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
 
     options = kwargs.get("options", {})
 
-    plot_file_format = options.get("plot_file_format", "pdf")
+    plot_file_format = options.get("plot_file_format", "png")
 
     if isinstance(run_freq_hours, int):
         run_freq_hours = {label: run_freq_hours for label in model_label_list}
