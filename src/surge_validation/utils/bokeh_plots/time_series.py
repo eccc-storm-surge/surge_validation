@@ -20,7 +20,7 @@ import bokeh.plotting as bpl
 import pandas as pd
 
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn
-from bokeh.models.widgets import NumberFormatter
+from bokeh.models.widgets import NumberFormatter, StringFormatter
 
 from surge_validation.utils.strutils import stname_to_fname2
 
@@ -160,7 +160,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
 
         def __get_formatter(key):
             if key == "system":
-                return None
+                return StringFormatter(font_style="bold")
             else:
                 return NumberFormatter(format="0[.]00000")
 
