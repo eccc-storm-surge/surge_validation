@@ -240,8 +240,14 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
-    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), bbox_inches="tight",
+    if img_dir is not None:
+        img_dir = Path(img_dir) / "static"
+        img_dir.mkdir(exist_ok=True, parents=True)
+
+    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), 
+                bbox_inches="tight",
                 transparent=True)
+                
     plt.close(fig)
     return label_to_scores
 
