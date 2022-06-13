@@ -247,14 +247,14 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), 
                 bbox_inches="tight",
                 transparent=True)
-                
+
     plt.close(fig)
     return label_to_scores
 
 
 def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=default_params.station_dict,
                                                   st_time=None, en_time=None,
-                                                  img_dir=None, model_label_list=(),
+                                                  img_dir: Path = None, model_label_list=(),
                                                   model_colors=("b", "r"),
                                                   run_freq_hours=6, ylim=None, linewidth=1, member_id="",
                                                   remove_ndays_mean=None,
@@ -335,6 +335,9 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
         axes[0].set_ylim(*ylim)
 
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
+
+    img_dir.mkdir(exist_ok=True, parents=True)
+
 
     fig.savefig(str(img_dir / f"bias_{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), bbox_inches="tight")
     plt.close(fig)
@@ -621,7 +624,7 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
         station_scores[st_id] = label_to_scores
 
         # plot biases as well
-        plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
+        plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias", **kwargs)
 
         # do seasonal plots if requested
         if split_seasons is not None:

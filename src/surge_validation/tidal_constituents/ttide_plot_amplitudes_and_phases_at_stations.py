@@ -95,6 +95,11 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
         for lbl_idx, lbl in enumerate(lbl_list):
 
             data = lbl_to_station_to_ts[lbl][station_id]
+
+            if len(data) == 0:
+                logger.info(f"no data for {lbl} at {station_id}")
+                continue
+
             lat = data[io_manager.LAT_COL_NAME].values[0]
 
             # calc obs

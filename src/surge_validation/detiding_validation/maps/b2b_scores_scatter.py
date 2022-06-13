@@ -175,10 +175,14 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
             cb.ax.set_visible(j > 0 or only_one_model_label)
             if j == len(mod_labels):
 
+
                 cb_axis = cb.ax.xaxis if orientation == "horizontal" else cb.ax.yaxis
                 ha = "right" if orientation == "horizontal" else "left"
+    
                 # make sure all the ticks are shown
                 cb_axis.set_ticks(cb_axis.get_ticklocs())
+
+                fig.canvas.draw()
 
                 tick_labels = [item for item in cb_axis.get_ticklabels()]
                 tick_labels[0].set_text("NEW: better")
@@ -186,6 +190,8 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
 
                 tick_labels[-1].set_text("REF: better")
                 tick_labels[-1].set_color(cmap(1.0))
+
+                print("cb ticklabels: ", tick_labels)
 
                 cb_axis.set_ticklabels(tick_labels, ha=ha)
 
@@ -236,7 +242,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                 break
 
     img = img_dir / f"map_scores{map_label}.pdf"
-    fig.canvas.draw()
+    
     # fig.tight_layout()
     fig.savefig(img, bbox_inches="tight", transparent=True)
     plt.close(fig)
