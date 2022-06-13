@@ -1,7 +1,6 @@
 """
 Get wind cross spectra at sel points
 """
-import sys
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
@@ -13,7 +12,7 @@ from rpnpy.librmn import all as rmn
 import numpy as np
 from rpnpy.rpndate import RPNDate
 
-from surge_validation.detiding_validation.config import default_params
+from surge_validation.config import default_params
 from surge_validation.utils.crosspec import crosspec
 from surge_validation.utils.geo import lat_lon
 

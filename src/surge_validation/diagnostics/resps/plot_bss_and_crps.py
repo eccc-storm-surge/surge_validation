@@ -14,7 +14,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
-from surge_validation.detiding_validation.config.default_params import station_dict
+from surge_validation.config.default_params import station_dict
 import numpy as np
 import re
 

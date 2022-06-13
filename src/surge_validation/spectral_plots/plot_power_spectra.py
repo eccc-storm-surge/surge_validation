@@ -7,11 +7,10 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from scipy import signal
 
-from ..detiding_validation.config import default_params
+from surge_validation.config import default_params
 from ..utils import log_utils
-from ..utils.crosspec import crosspec
 
-from ..detiding_validation import io_manager
+from .. import io_manager
 import numpy as np
 
 from ..utils.strutils import stname_to_fname2

@@ -2,24 +2,22 @@
 """
 Timeseries plots with zoom capability
 """
-import logging
 from collections import OrderedDict
 from datetime import timedelta
-from pathlib import Path
 
 from bokeh.colors import RGB
 from bokeh.layouts import column
 from bokeh.models import ColumnDataSource
 from matplotlib import colors
 
-from surge_validation.detiding_validation import io_manager
-from surge_validation.detiding_validation.config import default_params
+from surge_validation import io_manager
+from surge_validation.config import default_params
 from surge_validation.utils.log_utils import get_logger
 
 import bokeh.plotting as bpl
 import pandas as pd
 
-from bokeh.models.widgets import DataTable, DateFormatter, TableColumn
+from bokeh.models.widgets import DataTable, TableColumn
 from bokeh.models.widgets import NumberFormatter, StringFormatter
 
 from surge_validation.utils.strutils import stname_to_fname2

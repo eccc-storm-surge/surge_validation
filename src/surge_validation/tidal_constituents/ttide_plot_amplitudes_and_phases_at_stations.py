@@ -7,12 +7,11 @@ from datetime import timedelta
 from pathlib import Path
 
 from matplotlib.gridspec import GridSpec
-from matplotlib.ticker import NullFormatter
 from ttide import TTideCon
 
-from ..detiding_validation.config import default_params
+from surge_validation.config import default_params
 from ..utils import log_utils
-from ..detiding_validation import io_manager
+from .. import io_manager
 import numpy as np
 import pandas as pd
 import ttide
