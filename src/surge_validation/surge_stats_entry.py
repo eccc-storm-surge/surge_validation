@@ -12,7 +12,7 @@ from matplotlib.ticker import MultipleLocator, NullLocator
 
 from surge_validation import io_manager
 from .qq_plot import qqplot
-from surge_validation.verification_stats import stde, gamma, stde_obs, gamma_varobsallvhour
+from surge_validation.verification_stats.calc_stats_with_obs import stde, gamma, stde_obs, gamma_varobsallvhour
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pandas as pd

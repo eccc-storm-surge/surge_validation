@@ -15,7 +15,7 @@ from surge_validation.tidal_constituents import ttide_plot_amplitudes_and_phases
 from surge_validation.utils import log_utils
 from surge_validation.utils.io_utils.cleanup import cleanup_out_dir
 from surge_validation.config import default_params
-from surge_validation.maps import plot_score_maps, save_scores_to_txt
+from surge_validation.maps.b2b_scores_scatter import plot_score_maps, save_scores_to_txt
 from surge_validation.plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
 from surge_validation.surge_stats_entry import compare_n_simulations
 import numpy as np

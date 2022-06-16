@@ -32,7 +32,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     logger = log_utils.get_logger(__name__)
 
     options = kwargs.get("options", {})
-    plot_file_format = options.get(default_params.OptionNames.PLOT_FILE_FMT, "pdf")
+    plot_file_format = options.get(default_params.OptionNames.PLOT_FILE_FMT, "png")
 
     img_dir.mkdir(exist_ok=True, parents=True)
 
@@ -61,7 +61,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
         ax = fig.gca()
         assert isinstance(ax, Axes)
 
-        title = f"{station_id}" if not station_id in station_dict else f"{station_dict[station_id]} ({station_id})"
+        title = f"{station_id}" if station_id not in station_dict else f"{station_dict[station_id]} ({station_id})"
 
         mod_artists = []
         obs_artists = []
@@ -71,10 +71,12 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
             if lbl_idx == 0:
                 ts_obs = lbl_to_station_to_ts[lbl][station_id][io_manager.OBS_COL_NAME].asfreq(fs)
                 x = np.where(ts_obs.isna(), 0, ts_obs.values)
+                assert len(x) > 0, f"No data found for plotting spectra, lbl={lbl}; station_id={station_id}"
                 # freq, px_obs = crosspec(m, x)
                 freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(nfft_fraction * len(x)))
 
                 freq = freq * freq_mul
+                logger.info("spectra:\n freq=%s \n cpdmax=%f", freq, cpd_max)
                 sel = freq <= cpd_max
                 px_obs = px_obs[sel]
                 freq = freq[sel]
@@ -82,7 +84,8 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 obs_lines = ax.semilogy(freq.copy(), px_obs.copy(), color="k", linewidth=2, label="Obs")
                 obs_artists.append(obs_lines[0])
 
-                # freq_1, px_1 = signal.csd(x, x, fs=1. / fs.total_seconds(), scaling="spectrum", nperseg=m, detrend=False)
+                # freq_1, px_1 = signal.csd(x, x,
+                #                           fs=1. / fs.total_seconds(), scaling="spectrum", nperseg=m, detrend=False)
 
             logger.debug(lbl_to_station_to_ts[lbl][station_id].head())
             added_to_legend = False

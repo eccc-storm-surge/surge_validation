@@ -13,9 +13,7 @@ import pandas as pd
 
 from surge_validation.experiments.validation_experiment_base import compare_forecast
 
-
-
-# generalized plotting to several simulations
+#  generalized plotting to several simulations
 from surge_validation.utils import log_utils
 
 
@@ -25,19 +23,19 @@ def fc(station_dict=default_params.station_dict,
        exp_id="NOT_SET"):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/u2/ciopsw/pa")
+    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/u2/ciopsw/pa_noflt")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
 
     label = f"{exp_id}_{st_s}_{en_s}"
-    img_dir = Path(f"data/plots/u2_seasonal_cycles/ciopsw/pa/{label}")
+    img_dir = Path(f"data/plots/u2_seasonal_cycles/ciopsw/pa_noflt-tinker/{label}")
 
     exp_id_to_path = OrderedDict([
         ("CIOPSW (PA-REF, Surge)",
-            next(inp_data_root.rglob(f"data_for_scoring_*ciopsw*_ref_*blend_surge_{st_s}_{en_s}/surge*.dat"))),
+            next(inp_data_root.rglob(f"data_for_scoring_*ciopsw*_ref_*blend_surge_noflt_{st_s}_{en_s}/surge*.dat"))),
         ("CIOPSW (PA-NEW, Surge)",
-            next(inp_data_root.rglob(f"data_for_scoring_*ciopsw*_new_*blend_surge_{st_s}_{en_s}/surge*.dat"))),
+            next(inp_data_root.rglob(f"data_for_scoring_*ciopsw*_new_*blend_surge_noflt_{st_s}_{en_s}/surge*.dat"))),
     ])
 
     exp_id_labels = list(exp_id_to_path)
@@ -71,7 +69,7 @@ def fc(station_dict=default_params.station_dict,
         "score_map_colorbar_position": "right",
         "plot_spectra": True,
         "plot_tide_constituents": False,
-        "min_lead_hour": 1,
+        "min_lead_hour": 0,
         # number of forecasts to ignore to avoid transients from filtering
         default_params.OptionNames.IGNORE_EDGE_FORECASTS: {
             "beg": 3,
@@ -109,7 +107,7 @@ def main():
 
     st_date = datetime(2019, 12, 23, 1)
     en_date = datetime(2020, 2, 29, 0)
-    EXP_ID = "CIOPSW_NEW_vs_CIOPSW_REF_PA_HIV2020_BLEND_SURGE"
+    EXP_ID = "CIOPSW_NEW_vs_CIOPSW_REF_PA_HIV2020_BLEND_SURGE_noflt"
 
     logger = log_utils.get_logger(__name__)
     logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)
