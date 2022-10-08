@@ -28,13 +28,13 @@ def fc(station_dict=default_params.station_dict,
        exp_id=None):
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/home/olh001/Python/loadprogs_python/data/validate_08525/gdsps_glb/")
+    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/validate_08074/gdsps_glb/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
 
     label = f"{exp_id}_{st_s}_{en_s}"
-    img_dir = Path(f"data/plots/validate_08525/GDSPS/{label}")
+    img_dir = Path(f"data/plots/validate_08074/GDSPS/{label}")
 
     exp_id_to_path = OrderedDict([
         ("GDSPS (PA, TWL)",
@@ -103,8 +103,8 @@ def main():
     # en_date = datetime(2017, 12, 31, 18)
 
     st_date = datetime(2022, 1, 1, 0)
-    en_date = datetime(2022, 6, 1, 0)
-    EXP_ID = "GDSPS_TWL_validate_08525"
+    en_date = datetime(2022, 8, 1, 0)
+    EXP_ID = "GDSPS_TWL_validate_08074"
 
     logger = log_utils.get_logger(__name__)
     logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)
