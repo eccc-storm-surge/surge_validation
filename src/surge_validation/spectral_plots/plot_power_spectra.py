@@ -71,7 +71,11 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
             if lbl_idx == 0:
                 ts_obs = lbl_to_station_to_ts[lbl][station_id][io_manager.OBS_COL_NAME].asfreq(fs)
                 x = np.where(ts_obs.isna(), 0, ts_obs.values)
-                assert len(x) > 0, f"No data found for plotting spectra, lbl={lbl}; station_id={station_id}"
+
+                if len(x) == 0:
+                    logger.info(f"No data found for plotting spectra, lbl={lbl}; station_id={station_id}")
+                    continue
+
                 # freq, px_obs = crosspec(m, x)
                 freq, px_obs = signal.csd(x, x, fs=1. / fs.total_seconds(), nfft=int(nfft_fraction * len(x)))
 
