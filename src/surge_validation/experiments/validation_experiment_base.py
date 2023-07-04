@@ -15,6 +15,7 @@ from surge_validation.tidal_constituents import ttide_plot_amplitudes_and_phases
 from surge_validation.utils import log_utils
 from surge_validation.utils.io_utils.cleanup import cleanup_out_dir
 from surge_validation.config import default_params
+from surge_validation.maps import b2b_scores_scatter
 from surge_validation.maps.b2b_scores_scatter import plot_score_maps, save_scores_to_txt
 from surge_validation.plot_timeseries_per_station import compare_sims_timeseries_back2back, compare_sims_timeseries_one_plot_per_fc
 from surge_validation.surge_stats_entry import compare_n_simulations
@@ -77,6 +78,10 @@ def compare_forecast(station_dict=default_params.station_dict,
 
     if img_dir is None:
         img_dir = Path(f"data/plots/{exp_label}_{datetime.utcnow():%Y%m%d%H%M}")
+
+    status_file = img_dir / "ok"
+    status_file.unlink(missing_ok=True)
+
 
     if score_plots_params is None:
         score_plots_params = {
@@ -171,7 +176,7 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                                                     station_dict=station_dict,
                                                                                     st_time=st_time, en_time=en_time,
                                                                                     run_freq_hours=b2b_nhours,
-                                                                                    linewidth=0.3,
+                                                                                    linewidth=1,
                                                                                     b2b_cutoff_hours=b2b_cutoff_hours,
                                                                                     member_id=member_id,
                                                                                     split_seasons=split_seasons,
@@ -179,11 +184,14 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                                                     min_valid_hour=options.get("b2b_min_lead_hour", 0),
                                                                                     options=options)
 
-        fut = process_pool.submit(plot_score_maps,
+        for current_score_list in np.array_split(b2b_scores_scatter.SCORE_IDS, 2):
+
+            fut = process_pool.submit(plot_score_maps,
                                     station_scores, labels, exp_id_to_path,
                                     img_dir=img_dir,
+                                    score_ids=current_score_list,
                                     plot_params=options)
-        future_list.append(fut)
+            future_list.append(fut)
 
         save_scores_to_txt(station_scores, labels, img_dir)
 
@@ -199,12 +207,14 @@ def compare_forecast(station_dict=default_params.station_dict,
                 continue
 
             logger.info("Mapping scores for %s", season)
-            fut = process_pool.submit(plot_score_maps,
+            for current_score_list in np.array_split(b2b_scores_scatter.SCORE_IDS, 2):
+                fut = process_pool.submit(plot_score_maps,
                                         scores, labels, exp_id_to_path,
+                                        score_ids=current_score_list,
                                         img_dir=img_dir_season,
                                         map_label=f"{season}",
                                         plot_params=options)
-            future_list.append(fut)
+                future_list.append(fut)
 
             logger.info("Finished mapping scores for %s", season)
 
@@ -272,9 +282,10 @@ def compare_forecast(station_dict=default_params.station_dict,
         logger.debug("Completed 1 more task")
 
     # just a status file to know that it is done
-    with (img_dir / "ok").open('wb') as _:
+    with status_file.open('wb') as _:
         pass
-
+    
+    return status_file
 
 def main():
     st_time = datetime(2016, 12, 25, 9)

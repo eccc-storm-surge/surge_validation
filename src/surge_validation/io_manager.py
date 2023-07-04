@@ -54,11 +54,28 @@ def read_wl_station_data(data_store, station_dict=None,
 
     logging.info(f"Reading {data_store_p} ...")
 
-    df = pd.read_csv(data_store_p, sep=r"\s+", header=None, index_col=False,
-                     converters={0: float,
-                                 1: str,
-                                 2: float, 3: float,
-                                 4: parse_valid_time})
+    # try different separators
+    sep_list = [r"\s+", ","]
+    ve_saved = None
+    for sep in sep_list:
+        try:
+            df = pd.read_csv(data_store_p, sep=sep, header=None, index_col=False,
+                            converters={0: float,
+                                        1: str,
+                                        2: float, 
+                                        3: float,
+                                        4: parse_valid_time})
+            ve_saved = None
+            break
+        except ValueError as ve:
+            ve_saved = ve
+            continue
+
+    # if no suitable separator was found or value error
+    # for a different reason
+    if ve_saved is not None:
+        raise ve_saved
+
     if data_store_p.is_file():
 
         col_names = [VALIDH_COL_NAME, STID_COL_NAME, LAT_COL_NAME, LON_COL_NAME, TIME_COL_NAME, OBS_COL_NAME, ]

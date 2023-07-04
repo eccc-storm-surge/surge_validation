@@ -139,7 +139,10 @@ score_clevs = {
     "sigma": np.arange(0, 0.2, 0.02),
     "gamma2_diff": np.arange(-0.205, 0.21, 0.01),
     "sigma_diff": np.arange(-0.065, 0.07, 0.01),
-
+    "rmse": np.arange(0, 0.5, 0.05),
+    "rmse_diff": np.arange(-0.255, 0.26, 0.01),
+    "mePmO": np.arange(-0.255, 0.26, 0.05),
+    "mePmO_diff": np.arange(-0.255, 0.26, 0.01),
 }
 
 

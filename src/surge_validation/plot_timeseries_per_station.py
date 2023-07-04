@@ -192,22 +192,30 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
         st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label]]
 
-        st_sel_mod.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
+        st_sel_mod.sort_values([io_manager.TIME_COL_NAME, 
+                                io_manager.VALIDH_COL_NAME], inplace=True)
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
             logger.warning(f"No model data for {st_id}, skipping")
             continue
 
-        logger.debug("\n mod data \n %s", st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
+        logger.debug("\n mod data \n %s", 
+            st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
+
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-        logger.debug("\n duplicalted dates \n %s", st_sel_mod[st_sel_mod.index.duplicated()])
+        dups = st_sel_mod[st_sel_mod.index.duplicated()]
+        if len(dups) > 0:
+            logger.debug("\n duplicalted dates \n %s", 
+                         st_sel_mod[st_sel_mod.index.duplicated()])
         to_plot = st_sel_mod["mod" + member_id]
 
         if remove_ndays_mean is not None:
             to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
 
-        to_plot.plot(ax=axes[0], color=model_color, legend=False, grid=True, linewidth=linewidth)
+        to_plot.plot(ax=axes[0], color=model_color, 
+                     legend=False, 
+                     grid=True, linewidth=linewidth)
 
         model_label_to_series[model_label] = to_plot
 
@@ -244,7 +252,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), 
                 bbox_inches="tight",
-                transparent=True)
+                transparent=False)
 
     plt.close(fig)
     return label_to_scores
@@ -364,25 +372,31 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes = None):
         mod = mod.loc[indices]
         obs_sel = obs.loc[indices]
 
-        # take out mean over the selected period (to make sure that the mean is 0)
-        mod -= mod.mean()
-        obs_sel -= obs_sel.mean()
+        
+        ddof = 0 # =1 in MATLAB
 
-        obs_std = obs_sel.std() ** 2
-        gamma2 = (mod - obs_sel).std() ** 2 / obs_std if abs(obs_std) > 0 else np.Inf
-        sigma = (mod - obs_sel).std()
+        obs_std = obs_sel.std(ddof=ddof) ** 2
+        gamma2 = (mod - obs_sel).std(ddof=ddof) ** 2 / obs_std if abs(obs_std) > 0 else np.Inf
+        sigma = (mod - obs_sel).std(ddof=ddof)
         corr = mod.corr(obs_sel)
+
+        rmse = np.linalg.norm(mod - obs_sel) / len(mod) ** 0.5
 
         cell_text.append([f"{gamma2:.2f}", f"{sigma:.4f}", f"{corr:.2f}"])
 
-        label_to_scores[lab] = {"gamma2": gamma2, "sigma": sigma, "count": len(indices)}
+        label_to_scores[lab] = {"gamma2": gamma2, 
+                                "sigma": sigma, 
+                                "rmse": rmse,
+                                "mePmO": (mod - obs_sel).mean(),
+                                "count": len(indices)}
 
-    ax.table(
+    t = ax.table(
         cellText=cell_text,
         rowLabels=rows,
         colLabels=columns,
         loc="top"
     )
+    t.scale(1, 1.4)
 
     return label_to_scores
 

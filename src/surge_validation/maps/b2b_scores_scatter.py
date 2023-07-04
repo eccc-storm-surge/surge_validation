@@ -10,6 +10,7 @@ from matplotlib import cm
 from matplotlib.colors import BoundaryNorm
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from typing import List
 
 from surge_validation import io_manager
 import matplotlib.pyplot as plt
@@ -18,17 +19,46 @@ import cartopy.crs as ccrs
 from surge_validation.config import default_params
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+
+
+SCORE_IDS = ["gamma2", "sigma", "rmse", "mePmO"]
+
+
+SCORE_LABELS = {
+    "gamma2": r"\gamma^2",
+    "sigma": r"\sigma_{{\varepsilon}}",
+    "mePmO": r"ME(P-O)",
+    "rmse": r"RMSE"
+}
+
+SCORE_UNITS = {
+    "gamma2": r"-",
+    "sigma": r"m",
+    "rmse": r"m",
+    "mePmO": r"m",
+}
 
 
 def get_stid_to_coord_mapping(data_path) -> pd.DataFrame:
-    df_meta = pd.read_csv(data_path, header=None, sep=r"\s+",
-                          usecols=(io_manager.INFILE_STID_INDEX,
-                                   io_manager.INFILE_LAT_INDEX,
-                                   io_manager.INFILE_LON_INDEX),
-                          converters={1: str}
-                          )  # the file contains the station id lat and lon
 
+    ve_save = None
+    for sep in [r"\s+", ","]:
+        try:
+            df_meta = pd.read_csv(data_path, header=None, sep=sep,
+                                usecols=(io_manager.INFILE_STID_INDEX,
+                                        io_manager.INFILE_LAT_INDEX,
+                                        io_manager.INFILE_LON_INDEX),
+                                converters={1: str}
+                                )  # the file contains the station id lat and lon
+            ve_save = None
+            break
+        except ValueError as ve:
+            ve_save = ve
+
+    if ve_save is not None:
+        raise ve_save
+    
     column_name_map = {
         io_manager.INFILE_STID_INDEX: io_manager.STID_COL_NAME,
         io_manager.INFILE_LAT_INDEX: io_manager.LAT_COL_NAME,
@@ -45,9 +75,22 @@ def get_stid_to_coord_mapping(data_path) -> pd.DataFrame:
     return df_meta
 
 
-def plot_score_maps(station_to_scores, mod_labels, data_paths,
+def plot_score_maps(station_to_scores, 
+                    mod_labels, 
+                    data_paths,
                     img_dir: Path, map_label="",
+                    score_ids: List[str] = None,
                     plot_params=None):
+    """
+    Args:
+        station_to_scores: 
+        score_ids: list of scores to plot
+    """
+
+    if score_ids is None:
+        score_ids = SCORE_IDS[:2]
+
+
     if plot_params is None:
         plot_params = {}
 
@@ -59,16 +102,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
     # remove duplicated columns
     station_info = station_info.loc[:, ~station_info.columns.duplicated()]
 
-    score_ids = ["gamma2", "sigma"]
-    score_labels = {
-        "gamma2": r"\gamma^2",
-        "sigma": r"\sigma_{{\varepsilon}}"
-    }
 
-    score_units = {
-        "gamma2": r"-",
-        "sigma": r"m"
-    }
 
     projection = plot_params.get("score_map_projection", ccrs.PlateCarree())
 
@@ -196,9 +230,9 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                 cb_axis.set_ticklabels(tick_labels, ha=ha)
 
             if orientation == "horizontal":
-                cb.ax.set_ylabel(f"({score_units[score_id]})", rotation="horizontal", ha="right")
+                cb.ax.set_ylabel(f"({SCORE_UNITS[score_id]})", rotation="horizontal", ha="right")
             else:
-                cb.ax.set_xlabel(f"({score_units[score_id]})", rotation="horizontal")
+                cb.ax.set_xlabel(f"({SCORE_UNITS[score_id]})", rotation="horizontal")
 
             cax.tick_params(axis="x", rotation=45)
 
@@ -213,9 +247,9 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
             # set pannel titles
             if j < len(mod_labels):
                 if i == 0:
-                    ax.set_title(mod_label + "\n" + f"$\overline{{{score_labels[score_id]}}} = {val_mean:.2f}$")
+                    ax.set_title(mod_label + "\n" + f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.2f}$")
                 else:
-                    ax.set_title(f"$\overline{{{score_labels[score_id]}}} = {val_mean:.2f}$")
+                    ax.set_title(f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.2f}$")
             else:
                 if i == 0:
                     ax.set_title(mod_label)
@@ -231,7 +265,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
             #                 bbox=bbox_props)
 
             if j < len(mod_labels):
-                ylabel = fr"$\left({score_labels[score_id]}\right)$"
+                ylabel = fr"$\left({SCORE_LABELS[score_id]}\right)$"
                 ax.text(0.0, 1, ylabel,
                         va="top",
                         ha="right",
@@ -241,7 +275,7 @@ def plot_score_maps(station_to_scores, mod_labels, data_paths,
                 logger.info(f"There is only 1 unique model label ({mod_label}), only plotting its scores.")
                 break
 
-    img = img_dir / f"map_scores{map_label}.pdf"
+    img = img_dir / f"map_scores{map_label}_{'-'.join(score_ids)}.pdf"
     
     # fig.tight_layout()
     fig.savefig(img, bbox_inches="tight", transparent=True)

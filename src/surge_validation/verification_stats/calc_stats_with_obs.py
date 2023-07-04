@@ -290,3 +290,160 @@ def stde_obs(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05, **kwargs):
     res_by_station_and_vhour.sort_values(VALIDH_COL_NAME, inplace=True)
     res_by_vhour.sort_values(VALIDH_COL_NAME, inplace=True)
     return res_by_station_and_vhour, res_by_vhour
+
+
+def mean_error_PmO(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05, **kwargs):
+    """
+
+    :param alpha_ci: probability for the values to fall outside the confidence interval (default=0.05),
+            used to define confidence intervals during bootstrap
+
+    :param nbootstrap: nbootstrap - number of bootstrap iterations, if <=1, then no bootstrap
+    :param stids_not_overall: ids of the stations excluded from the overall stats
+    :param data: pandas DataFrame containing columns
+        {valid_hour, time, station_id, obs, mod000, mod001, ..., mod00n or just mod for deterministic}
+
+        returns a dataframe (df) with columns
+        {(valid_hour, station_id)=>, modiii_mean_error_PmO or just mod for deterministic} and a dataframe
+        (overall_stde) with {(valid_hour)=>, mod000_mean_error_PmO, ..., modnnn_mean_error_PmO}
+    """
+
+    mod_columns = io_manager.get_model_column_names(data)
+
+    tmp_data = pd.DataFrame(index=data.index,
+                            data={VALIDH_COL_NAME: data[VALIDH_COL_NAME],
+                                  STID_COL_NAME: data[STID_COL_NAME]})
+
+    suffix = "_mean_error_PmO"
+
+    tmp_data["obs"] = data["obs"]
+
+    for c in mod_columns:
+        tmp_data[f"{c}{suffix}"] = data[c] - data["obs"]
+
+    g = tmp_data.groupby([STID_COL_NAME, VALIDH_COL_NAME])
+
+    res_by_station_and_vhour = g.mean()
+    counts_by_station_and_vhour = g.count()
+
+
+    # do bootstrapping if requested
+    if nbootstrap > 1:
+        rnd = default_rng(seed=42)
+
+        for c in mod_columns:
+            colname = f"{c}{suffix}"
+
+            # get confidence intervals
+            ci_ranges = calculate_conf_intervals(g[colname],
+                                                 lambda x: np.mean(x),
+                                                 nbootstrap=nbootstrap,
+                                                 alpha_ci=alpha_ci, 
+                                                 rnd=rnd)
+
+            
+            ci_min_cname = f"{colname}_ci_min"
+            ci_max_cname = f"{colname}_ci_max"
+
+            res_by_station_and_vhour[ci_min_cname] = res_by_station_and_vhour.index.map(
+                lambda i: ci_ranges[i][0])
+
+            res_by_station_and_vhour[ci_max_cname] = res_by_station_and_vhour.index.map(
+                lambda i: ci_ranges[i][1])
+
+
+
+
+    # do not consider some stations in the overall scores
+    subset = ~res_by_station_and_vhour.index.get_level_values(STID_COL_NAME).isin(stids_not_overall)
+    res_by_station_and_vhour_filt = res_by_station_and_vhour[subset]
+    counts_by_station_and_vhour = counts_by_station_and_vhour[subset]
+
+    res_by_vhour = weighted_avg(res_by_station_and_vhour_filt, 
+                                counts_by_station_and_vhour,
+                                grouping_col=VALIDH_COL_NAME)
+
+   
+    res_by_station_and_vhour.sort_values(VALIDH_COL_NAME, inplace=True)
+    res_by_vhour.sort_values(VALIDH_COL_NAME, inplace=True)
+
+    return res_by_station_and_vhour, res_by_vhour
+
+
+
+def rmse(data, stids_not_overall=(), nbootstrap=0, alpha_ci=0.05, **kwargs):
+    """
+
+    :param alpha_ci: probability for the values to fall outside the confidence interval (default=0.05),
+            used to define confidence intervals during bootstrap
+
+    :param nbootstrap: nbootstrap - number of bootstrap iterations, if <=1, then no bootstrap
+    :param stids_not_overall: ids of the stations excluded from the overall stats
+    :param data: pandas DataFrame containing columns
+        {valid_hour, time, station_id, obs, mod000, mod001, ..., mod00n or just mod for deterministic}
+
+        returns a dataframe (df) with columns
+        {(valid_hour, station_id)=>, modiii_rmse or just mod for deterministic} and a dataframe
+        (overall_stde) with {(valid_hour)=>, mod000_rmse, ..., modnnn_rmse}
+    """
+
+    mod_columns = io_manager.get_model_column_names(data)
+
+    tmp_data = pd.DataFrame(index=data.index,
+                            data={VALIDH_COL_NAME: data[VALIDH_COL_NAME],
+                                  STID_COL_NAME: data[STID_COL_NAME]})
+
+    suffix = "_rmse"
+
+    tmp_data["obs"] = data["obs"]
+
+    for c in mod_columns:
+        tmp_data[f"{c}{suffix}"] = (data[c] - data["obs"]) ** 2
+
+    g = tmp_data.groupby([STID_COL_NAME, VALIDH_COL_NAME])
+
+    res_by_station_and_vhour = g.mean() ** 0.5
+    counts_by_station_and_vhour = g.count()
+
+
+   
+    # do bootstrapping if requested
+    if nbootstrap > 1:
+        rnd = default_rng(seed=42)
+
+        for c in mod_columns:
+            colname = f"{c}{suffix}"
+
+            # get confidence intervals 
+            ci_ranges = calculate_conf_intervals(g[colname],
+                                                 lambda x: np.mean(x) ** 0.5,
+                                                 nbootstrap=nbootstrap,
+                                                 alpha_ci=alpha_ci, rnd=rnd)
+
+            
+            ci_min_cname = f"{colname}_ci_min"
+            ci_max_cname = f"{colname}_ci_max"
+
+            res_by_station_and_vhour[ci_min_cname] = res_by_station_and_vhour.index.map(
+                lambda i: ci_ranges[i][0])
+
+            res_by_station_and_vhour[ci_max_cname] = res_by_station_and_vhour.index.map(
+                lambda i: ci_ranges[i][1])
+
+
+
+
+    # do not consider some stations in the overall scores
+    subset = ~res_by_station_and_vhour.index.get_level_values(STID_COL_NAME).isin(stids_not_overall)
+    res_by_station_and_vhour_filt = res_by_station_and_vhour[subset]
+    counts_by_station_and_vhour = counts_by_station_and_vhour[subset]
+
+    res_by_vhour = weighted_avg(res_by_station_and_vhour_filt, counts_by_station_and_vhour,
+                                grouping_col=VALIDH_COL_NAME)
+
+   
+    res_by_station_and_vhour.sort_values(VALIDH_COL_NAME, inplace=True)
+    res_by_vhour.sort_values(VALIDH_COL_NAME, inplace=True)
+
+    return res_by_station_and_vhour, res_by_vhour
+

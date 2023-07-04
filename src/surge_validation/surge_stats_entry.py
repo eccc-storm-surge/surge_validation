@@ -13,6 +13,7 @@ from matplotlib.ticker import MultipleLocator, NullLocator
 from surge_validation import io_manager
 from .qq_plot import qqplot
 from surge_validation.verification_stats.calc_stats_with_obs import stde, gamma, stde_obs, gamma_varobsallvhour
+from surge_validation.verification_stats import calc_stats_with_obs
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pandas as pd
@@ -247,7 +248,9 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         "stde": r"$\sigma_{\varepsilon}$ (m)",
         "gamma": r"$\gamma^2$",
         "stde_obs": r"$\sigma_{Obs}$ (m)",
-        "gamma_varobsallvhour": r"$\gamma^2_{adj}$"
+        "gamma_varobsallvhour": r"$\gamma^2_{adj}$",
+        "mean_error_PmO": r"ME(P-O)",
+        "rmse": r"RMSE/EQM",
     }
 
     if member_id is None or len(member_id) == 0:
@@ -263,7 +266,9 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         "_stde": stde,
         "_gamma": gamma,
         "_stde_obs": stde_obs,
-        "_gamma_varobsallvhour": gamma_varobsallvhour
+        "_gamma_varobsallvhour": gamma_varobsallvhour,
+        "_mean_error_PmO": calc_stats_with_obs.mean_error_PmO,
+        "_rmse": calc_stats_with_obs.rmse
     }
 
     conf_level_pcnt = confidence_level * 100
@@ -278,7 +283,13 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         "_stde_obs": {},
         "_gamma_varobsallvhour": {"nbootstrap": nbootstrap_default,
                                   "alpha_ci": alpha_ci,
-                                  "legend_title": f"{conf_level_pcnt}% conf. interval"}
+                                  "legend_title": f"{conf_level_pcnt}% conf. interval"},
+        "_mean_error_PmO": {"nbootstrap": nbootstrap_default,
+                  "alpha_ci": alpha_ci,
+                  "legend_title": f"{conf_level_pcnt}% conf. interval"},
+        "_rmse": {"nbootstrap": nbootstrap_default,
+                  "alpha_ci": alpha_ci,
+                  "legend_title": f"{conf_level_pcnt}% conf. interval"},
     }
 
     member_col_index = 0

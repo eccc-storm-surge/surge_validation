@@ -80,7 +80,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
     st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
-    st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
+    # st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
     st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
     st_sel_obs = st_sel_obs.asfreq("60T")["obs"]
 
@@ -102,7 +102,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
         st_sel_mod = st_sel_mod[st_sel_mod[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
         st_sel_mod.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
-        st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
+        # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
             logger.warning(f"No model data data for {st_id}, skipping")
