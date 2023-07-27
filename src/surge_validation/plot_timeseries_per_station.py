@@ -264,6 +264,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
                                                   model_colors=("b", "r"),
                                                   run_freq_hours=6, ylim=None, linewidth=1, member_id="",
                                                   remove_ndays_mean=None,
+                                                  apply_nd_running_mean=None,
                                                   min_valid_hour=0, **kwargs):
     """
     :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
@@ -279,12 +280,18 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
     :param ylim:
     :param linewidth:
     :param member_id:
+    :param apply_nd_running_mean: None or number of days to apply the running mean
     :return: a dictionary of {label: {gamma2: value, sigma: value}}
     """
 
     options = kwargs.get("options", {})
 
     plot_file_format = options.get("plot_file_format", "png")
+
+    if apply_nd_running_mean is None:
+        out_img = img_dir / f"bias_{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"
+    else:
+        out_img = img_dir / f"bias_{st_id}_{stname_to_fname2(station_dict[st_id])}_rollmean{apply_nd_running_mean}d.{plot_file_format}"
 
     if isinstance(run_freq_hours, int):
         run_freq_hours = {label: run_freq_hours for label in model_label_list}
@@ -311,6 +318,10 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
             return {}
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
+
+        if apply_nd_running_mean is not None:
+            st_sel_mod = st_sel_mod.rolling(timedelta(days=apply_nd_running_mean)).mean()
+
         # calculate the bias
         to_plot = st_sel_mod["mod" + member_id] - st_sel_mod["obs"]
 
@@ -345,7 +356,8 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
     img_dir.mkdir(exist_ok=True, parents=True)
 
 
-    fig.savefig(str(img_dir / f"bias_{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), bbox_inches="tight")
+    fig.savefig(out_img, bbox_inches="tight")
+    
     plt.close(fig)
     return label_to_scores
 
@@ -637,6 +649,8 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
 
         # plot biases as well
         plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias", **kwargs)
+        plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias-roll-10d", 
+                                                      apply_nd_running_mean=10, **kwargs)
 
         # do seasonal plots if requested
         if split_seasons is not None:
