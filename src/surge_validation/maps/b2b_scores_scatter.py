@@ -247,9 +247,9 @@ def plot_score_maps(station_to_scores,
             # set pannel titles
             if j < len(mod_labels):
                 if i == 0:
-                    ax.set_title(mod_label + "\n" + f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.2f}$")
+                    ax.set_title(mod_label + "\n" + f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.3e}$")
                 else:
-                    ax.set_title(f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.2f}$")
+                    ax.set_title(f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.3e}$")
             else:
                 if i == 0:
                     ax.set_title(mod_label)
