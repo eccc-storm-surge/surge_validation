@@ -338,8 +338,7 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
             if len(col_names) > 1:
                 logging.warning(f"Using member: {col_names[member_col_index]}")
 
-            logger.debug(f"i={i}, st_id={st_id}")
-
+            
             # get stats for the current station, hence stats[0]
             lbl_to_series = OrderedDict([
                 (lbl, stats[0].xs(st_id, level="station_id")) for lbl, stats in lbl_to_stats.items()

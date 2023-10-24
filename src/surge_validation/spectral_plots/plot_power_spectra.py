@@ -91,7 +91,7 @@ def plot_using_cross_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 # freq_1, px_1 = signal.csd(x, x,
                 #                           fs=1. / fs.total_seconds(), scaling="spectrum", nperseg=m, detrend=False)
 
-            logger.debug(lbl_to_station_to_ts[lbl][station_id].head())
+            # logger.debug(lbl_to_station_to_ts[lbl][station_id].head())
             added_to_legend = False
             for c_index, c in enumerate(lbl_to_station_to_ts[lbl][station_id].columns):
                 if not c.startswith("mod"):

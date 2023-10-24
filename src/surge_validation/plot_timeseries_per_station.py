@@ -149,6 +149,11 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     if options is None:
         options = {}
 
+    assert len(swl_list) == len(model_label_list), \
+        "Number of model labels does not correspond to the number of data sources"
+
+    obs_rel_difference_max = 0.01 # i.e. not more than 1 percent
+
     plot_file_format = options.get("plot_file_format", "png")
 
     logger = log_utils.get_logger(__name__)
@@ -162,9 +167,10 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     # Select and plot obs on top of the model data
     st_sel_obs_prev = None
-    for swl in swl_list:
+    model_label_prev = None
+    for swl, model_label in zip(swl_list, model_label_list):
         st_sel_obs = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
-        st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label_list[0]]]
+        st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label]]
         st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
 
         st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
@@ -173,9 +179,16 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         st_sel_obs = st_sel_obs[io_manager.OBS_COL_NAME]
 
         if st_sel_obs_prev is not None:
-            st_sel_obs = st_sel_obs.combine_first(st_sel_obs_prev)
+            # check if compared obs are not to different
+            delta = (st_sel_obs - st_sel_obs_prev).map(lambda x: abs(x)).max()
+
+            if delta / (st_sel_obs + st_sel_obs_prev).map(lambda x: 0.5 * abs(x)).max() > obs_rel_difference_max:
+                raise Exception(f"Observations for {model_label} and {model_label_prev} are too different, line plots might be misleading")
+
+            st_sel_obs = st_sel_obs_prev.combine_first(st_sel_obs)
 
         st_sel_obs_prev = st_sel_obs
+        model_label_prev = model_label
 
     
 
@@ -200,8 +213,8 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
             logger.warning(f"No model data for {st_id}, skipping")
             continue
 
-        logger.debug("\n mod data \n %s", 
-            st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
+        # logger.debug("\n mod data \n %s", 
+        #     st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
         dups = st_sel_mod[st_sel_mod.index.duplicated()]
@@ -304,6 +317,9 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
 
     logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
 
+    mod_col_name = f"mod{member_id}"
+    obs_col_name = "obs"
+
     st_sel_obs_prev = None
     for swl, model_label, model_color in zip(swl_list, model_label_list, model_colors):
         st_sel_mod = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
@@ -320,21 +336,26 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
 
         if apply_nd_running_mean is not None:
-            st_sel_mod = st_sel_mod.rolling(timedelta(days=apply_nd_running_mean)).mean()
+            st_sel_mod = st_sel_mod[[mod_col_name, obs_col_name]].rolling(
+                timedelta(days=apply_nd_running_mean)).mean()
 
         # calculate the bias
-        to_plot = st_sel_mod["mod" + member_id] - st_sel_mod["obs"]
+        to_plot = st_sel_mod[mod_col_name] - st_sel_mod[obs_col_name]
 
         if remove_ndays_mean is not None:
-            to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
+            to_plot = to_plot - to_plot.rolling(
+                timedelta(days=remove_ndays_mean)).mean()
 
-        to_plot.plot(ax=axes[0], color=model_color, legend=False, grid=True, linewidth=linewidth)
+        to_plot.plot(ax=axes[0], color=model_color, 
+                     legend=False, 
+                     grid=True, linewidth=linewidth)
 
-        model_label_to_series[model_label] = st_sel_mod["mod" + member_id]
-        if not "obs" in model_label_to_series:
-            model_label_to_series["obs"] = st_sel_mod["obs"]
+        model_label_to_series[model_label] = st_sel_mod[mod_col_name]
+        if not obs_col_name in model_label_to_series:
+            model_label_to_series[obs_col_name] = st_sel_mod[obs_col_name]
         else:
-            model_label_to_series["obs"] = model_label_to_series["obs"].combine_first(st_sel_mod["obs"])
+            model_label_to_series[obs_col_name] = model_label_to_series[obs_col_name].combine_first(
+                st_sel_mod[obs_col_name])
 
     same_mod = len(set(model_label_list)) == 1
 
@@ -376,7 +397,7 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes = None):
     obs = lab_to_series["obs"].dropna()
 
     for lab in rows:
-        logger.debug("\nobs\n%s\nmod\n%s", obs.head(), lab_to_series[lab].head())
+        # logger.debug("\nobs\n%s\nmod\n%s", obs.head(), lab_to_series[lab].head())
         mod = lab_to_series[lab].copy()
 
         indices = mod.index.intersection(obs.index)
