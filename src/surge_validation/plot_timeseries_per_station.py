@@ -181,9 +181,12 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         if st_sel_obs_prev is not None:
             # check if compared obs are not to different
             delta = (st_sel_obs - st_sel_obs_prev).map(lambda x: abs(x)).max()
+            delta_rel = delta / (st_sel_obs + st_sel_obs_prev).map(lambda x: 0.5 * abs(x)).max()
 
-            if delta / (st_sel_obs + st_sel_obs_prev).map(lambda x: 0.5 * abs(x)).max() > obs_rel_difference_max:
-                raise Exception(f"Observations for {model_label} and {model_label_prev} are too different, line plots might be misleading")
+            if delta_rel > obs_rel_difference_max:
+                raise Exception(f"Aborting: Observations for {model_label} and {model_label_prev}"
+                                f" are too different (delta={delta}; delta_rel={delta_rel}; delta_rel_max_allowed={obs_rel_difference_max}), "
+                                " line plots might be misleading")
 
             st_sel_obs = st_sel_obs_prev.combine_first(st_sel_obs)
 
