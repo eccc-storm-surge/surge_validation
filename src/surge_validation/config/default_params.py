@@ -127,7 +127,8 @@ vname_to_limits = {
     "stde": (0, 0.1),
     "gamma": (0, 1),
     "stde_obs": (0, 0.1),
-    "gamma_varobsallvhour": (0, 1)
+    "gamma_varobsallvhour": (0, 1),
+    "mean_error_PmO": (-0.2, 0.2)
 }
 
 COLOR_OLD = "b"
