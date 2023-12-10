@@ -6,6 +6,7 @@ from pathlib import Path
 
 import cartopy
 import pandas as pd
+import numpy as np
 from matplotlib import cm
 from matplotlib.colors import BoundaryNorm
 from matplotlib.gridspec import GridSpec
@@ -128,50 +129,56 @@ def plot_score_maps(station_to_scores,
 
     labels = mod_labels if only_one_model_label else mod_labels + \
                                                      [r"$\Delta$" + f"[{mod_labels[1]} -\n  {mod_labels[0]}]"]
+
+    # station coords
+    coords_x = []
+    coords_y = []
+
+
+    label_to_scores = {}
+    label_to_counts = {}
+    for stid in station_info.index:
+
+        if stid not in station_to_scores or station_to_scores[stid] is None:
+            logger.info(f"Stats were not calculated for {stid} , not mapping it.")
+            continue
+
+        lat, lon = [station_info.loc[stid, cn] for cn in [io_manager.LAT_COL_NAME, io_manager.LON_COL_NAME]]
+
+        x, y = projection.transform_point(lon, lat, ccrs.PlateCarree())
+
+        coords_x.append(x)
+        coords_y.append(y)
+
+        for label in station_to_scores[stid]:
+            if label not in label_to_scores:
+                label_to_scores[label] = {score_id: [] for score_id in score_ids}
+                label_to_counts[label] = {score_id: [] for score_id in score_ids}
+
+            for score_id in score_ids:
+                label_to_scores[label][score_id].append(station_to_scores[stid][label][score_id])
+                label_to_counts[label][score_id].append(station_to_scores[stid][label]["count"])
+
+
+    
     # create grid of axes
     for i, score_id in enumerate(score_ids):
-
         for j, mod_label in enumerate(labels):
-            ax = fig.add_subplot(gs[i, j], projection=projection)
 
-            # plotting
-            coords_x = []
-            coords_y = []
-            vals = []
-            counts = []
+            
+            if j < len(mod_labels):
+                vals = np.array(label_to_scores[mod_label][score_id])
+                counts = np.array(label_to_counts[mod_label][score_id])
+            else:
+                vals = np.array(label_to_scores[mod_labels[1]][score_id]) - \
+                       np.array(label_to_scores[mod_labels[0]][score_id])
+                counts = np.array(label_to_counts[mod_labels[1]][score_id])
 
-            for stid in station_info.index:
-
-                if stid not in station_to_scores or station_to_scores[stid] is None:
-                    logger.info(f"Stats were not calculated for {stid} , not mapping it.")
-                    continue
-
-                lat, lon = [station_info.loc[stid, cn] for cn in [io_manager.LAT_COL_NAME, io_manager.LON_COL_NAME]]
-
-                x, y = projection.transform_point(lon, lat, ccrs.PlateCarree())
-
-                coords_x.append(x)
-                coords_y.append(y)
-
-                # plotting values
-                if j < len(mod_labels):
-
-                    logger.debug(stid)
-                    logger.debug(station_to_scores[stid])
-
-                    vals.append(station_to_scores[stid][mod_label][score_id])
-
-                    # mean score for all stations
-                    counts.append(station_to_scores[stid][mod_label]["count"])
-                    val_mean = sum([v * c for v, c in zip(vals, counts)]) / sum(counts)
-
-                else:
-                    vals.append(
-                        station_to_scores[stid][mod_labels[1]][score_id] - station_to_scores[stid][mod_labels[0]][
-                            score_id]
-                    )
+            val_mean = (vals * counts).sum() / counts.sum()
 
             # plotting values
+            ax = fig.add_subplot(gs[i, j], projection=projection)
+
             extend = "max"
             if j < len(mod_labels):
                 clevs = default_params.score_clevs[score_id]
@@ -193,7 +200,6 @@ def plot_score_maps(station_to_scores,
                              s=plot_params.get("score_map_marker_size", None),
                              zorder=10)
 
-            logger.debug("\nvals=%s", vals)
             # create an axes on the right side of ax. The width of cax will be 5%
             # of ax and the padding between cax and ax will be fixed at 0.05 inch.
             divider = make_axes_locatable(ax)
@@ -225,7 +231,7 @@ def plot_score_maps(station_to_scores,
                 tick_labels[-1].set_text("REF: better")
                 tick_labels[-1].set_color(cmap(1.0))
 
-                print("cb ticklabels: ", tick_labels)
+                # print("cb ticklabels: ", tick_labels)
 
                 cb_axis.set_ticklabels(tick_labels, ha=ha)
 
