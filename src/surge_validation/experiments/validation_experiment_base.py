@@ -193,6 +193,8 @@ def compare_forecast(station_dict=default_params.station_dict,
                                     plot_params=options)
             future_list.append(fut)
 
+        print(f"Submitted {len(future_list)} tasks")
+
         save_scores_to_txt(station_scores, labels, img_dir)
 
         # plot score maps per season
