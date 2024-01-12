@@ -241,7 +241,7 @@ def compare_forecast(station_dict=default_params.station_dict,
     if plot_spectra or plot_tide_constituents:
         lbl_to_station_to_ts = surge_stats_entry.get_b2b_timeseries(lbl_to_data=lbl_to_data,
                                                                     b2b_nhours=b2b_nhours,
-                                                                    min_valid_hour=options.get("min_lead_hour", 0))
+                                                                    min_valid_hour=options.get("b2b_min_lead_hour", 0))
 
     # plot power spectra
     if plot_spectra:
