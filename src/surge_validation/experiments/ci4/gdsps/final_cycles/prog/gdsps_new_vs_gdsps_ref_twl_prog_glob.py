@@ -52,7 +52,8 @@ def fc(station_dict=default_params.station_dict,
         "max_lead_hour": 240,
         "min_lead_hour": 0,
         "agg_hours": [0, 12],
-        "single_panel_figsize": (7.5, 5.5)
+        "single_panel_figsize": (7.5, 5.5),
+        "do_subplots_per_station": False
     }
 
     b2b_split_seasons = {
@@ -64,7 +65,7 @@ def fc(station_dict=default_params.station_dict,
         "calculate_scores": True,
         "do_b2b_timeseries": True,
         "b2b_split_seasons": {},
-        "score_map_figsize": (20, 8),
+        "score_map_figsize": (20, 10),
         "score_map_marker_size": 20,
         "score_map_colorbar_fraction": "8%",
         "score_map_fontsize": 13,
@@ -84,7 +85,9 @@ def fc(station_dict=default_params.station_dict,
         "stde": None,
         "gamma": None,
         "stde_obs": None,
-        "gamma_varobsallvhour": None
+        "gamma_varobsallvhour": None,
+        "mean_error_PmO": None, 
+        "rmse": None
     }
 
     # select only stations existing in both data files
