@@ -258,7 +258,7 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
 
     stids_not_overall = default_params.ignore_in_overall
     xlims = None
-    all_axes_except_last = []
+    
 
     data_any = next(v for v in lbl_to_data.values())
 
@@ -302,82 +302,6 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
                 for lbl, data in lbl_to_data.items()
         ])
 
-        # determine number of rows in the panel plot
-        if select_stations is None:
-            nsubplots = 1 + len(current_station_ids)
-        else:
-            nsubplots = 1 + len([cid for cid in current_station_ids if cid in select_stations])
-
-        nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
-
-        panel_width, panel_height = score_plots_params.get("single_panel_figsize", (7.5, 5.5))
-        fig = plt.figure(figsize=(panel_width * n_subplot_cols, panel_height * nrows), dpi=96)
-        gs = GridSpec(nrows, n_subplot_cols, top=0.90, wspace=0.4)
-        shared_ax = None
-
-        logger.debug(current_station_ids)
-        logger.debug("number of stations to process = {}".format(len(current_station_ids)))
-        logger.debug(f"Subplots: nrows={nrows}, ncols={n_subplot_cols}")
-
-        i = 0
-        for _i, st_id in enumerate(sorted(current_station_ids)):
-
-            # plot only selected stations
-            if select_stations is not None:
-                if st_id not in select_stations:
-                    continue
-
-            st_name = station_dict[st_id]
-
-            row, col = plot_index_to_row_col(i, n_subplot_cols)
-            ax = fig.add_subplot(gs[row, col], label=f"{row}_{col}_{st_id}")
-
-            if shared_ax is None:
-                shared_ax = ax
-
-            if len(col_names) > 1:
-                logging.warning(f"Using member: {col_names[member_col_index]}")
-
-            
-            # get stats for the current station, hence stats[0]
-            lbl_to_series = OrderedDict([
-                (lbl, stats[0].xs(st_id, level="station_id")) for lbl, stats in lbl_to_stats.items()
-            ])
-
-            plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
-                                   lbl_to_color=lbl_to_color,
-                                   col_name=col_names[member_col_index],
-                                   shared_ax=shared_ax,
-                                   title=f"{st_name} ({st_id})",
-                                   show_avg_diff=show_avg_diff)
-
-            style_axes(ax, locator_base=forecast_hour_tick_multiplier)
-            all_axes_except_last.append(ax)
-            i += 1
-
-        # add overall stats plot
-        i = nsubplots - 1
-        row, col = plot_index_to_row_col(i, n_subplot_cols)
-        ax = fig.add_subplot(gs[row, col])
-
-        # get stats for all stations
-        lbl_to_series = OrderedDict([
-            (lbl, stats[1]) for lbl, stats in lbl_to_stats.items()
-        ])
-
-        plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
-                               lbl_to_color=lbl_to_color,
-                               col_name=col_names[member_col_index],
-                               shared_ax=shared_ax,
-                               title="All stations",
-                               show_avg_diff=show_avg_diff)
-
-        style_axes(ax, locator_base=forecast_hour_tick_multiplier)
-
-        legend_title = stats_functions_params[suffix].get("legend_title", None)
-        ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4),
-                  borderaxespad=0.,
-                  title=legend_title)
 
         # get min/max origin times for titles
         t_origin = data_any[io_manager.DATEO_COL_NAME]
@@ -385,14 +309,36 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         en_time = t_origin.max()
 
         period_s = f"{st_time:%Y%m%d%H}-{en_time:%Y%m%d%H}"
-        fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
 
-        if max_lead_hour is not None:
-            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.pdf"
+
+        if score_plots_params.get("do_subplots_per_station", True):
+            fig, lbl_to_series = plot_score_supbplots_per_station(lbl_to_stats=lbl_to_stats, 
+                                                station_dict=station_dict,
+                                                col_names=col_names,
+                                                member_col_index=member_col_index,
+                                                lbl_to_color=lbl_to_color,
+                                                stat_suffix=suffix,
+                                                stats_functions_params=stats_functions_params,
+                                                select_stations=select_stations,
+                                                available_station_ids=current_station_ids,
+                                                n_subplot_cols=n_subplot_cols,
+                                                score_plots_params=score_plots_params, show_avg_diff=show_avg_diff)
+
+
+            fig.suptitle(f"{statname_to_disp[suffix[1:]]}, {period_s}")
+
+            if max_lead_hour is not None:
+                img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}_max_lead_{max_lead_hour}.pdf"
+            else:
+                img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.pdf"
+
+            fig.savefig(str(img_file), bbox_inches="tight", transparent=True)
         else:
-            img_file = img_dir / f"{st_time:%Y%m%d%H}_{en_time:%Y%m%d%H}{suffix}.pdf"
+            # get stats for all stations
+            lbl_to_series = OrderedDict([
+                (lbl, stats[1]) for lbl, stats in lbl_to_stats.items()
+            ])
 
-        fig.savefig(str(img_file), bbox_inches="tight", transparent=True)
 
         # save for overall stats into a separate file
         fig = plt.figure(figsize=score_plots_params.get("single_panel_figsize", (5, 3)), dpi=96)
@@ -419,6 +365,109 @@ def compare_n_simulations(lbl_to_data: dict, lbl_to_color: dict, img_dir,
         plt.close(fig)
 
     logging.info("Finished compare_n_simulations ...")
+
+
+def plot_score_supbplots_per_station(lbl_to_stats: dict, station_dict: dict,
+                                     col_names: list, 
+                                     member_col_index,
+                                     lbl_to_color,
+                                     stat_suffix,
+                                     stats_functions_params: dict,
+                                     select_stations: list = None,
+                                     available_station_ids: list = (),
+                                     n_subplot_cols=4, 
+                                     score_plots_params=None,
+                                     show_avg_diff=True):
+    """
+    plot scores in subplots
+    Returns:
+        fig: figure containing subplots, to be saved
+        lbl_to_deries: dict of lines to be plotted for all stations
+    """
+
+    if score_plots_params is None:
+        score_plots_params = {}
+
+
+    forecast_hour_tick_multiplier = score_plots_params["forecast_hour_tick_multiplier"]
+
+    # determine number of rows in the panel plot
+    if select_stations is None:
+        nsubplots = 1 + len(available_station_ids)
+    else:
+        nsubplots = 1 + len([cid for cid in available_station_ids if cid in select_stations])
+
+    nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
+
+    panel_width, panel_height = score_plots_params.get("single_panel_figsize", (7.5, 5.5))
+    fig = plt.figure(figsize=(panel_width * n_subplot_cols, panel_height * nrows), dpi=96)
+    gs = GridSpec(nrows, n_subplot_cols, top=0.90, wspace=0.4)
+    shared_ax = None
+
+    logger.debug("number of stations to process = {}".format(len(available_station_ids)))
+    logger.debug(f"Subplots: nrows={nrows}, ncols={n_subplot_cols}")
+
+    i = 0
+    for _i, st_id in enumerate(sorted(available_station_ids)):
+
+        # plot only selected stations
+        if select_stations is not None:
+            if st_id not in select_stations:
+                continue
+
+        st_name = station_dict[st_id]
+
+        row, col = plot_index_to_row_col(i, n_subplot_cols)
+        ax = fig.add_subplot(gs[row, col], label=f"{row}_{col}_{st_id}")
+
+        if shared_ax is None:
+            shared_ax = ax
+
+        if len(col_names) > 1:
+            logging.warning(f"Using member: {col_names[member_col_index]}")
+
+        
+        # get stats for the current station, hence stats[0]
+        lbl_to_series = OrderedDict([
+            (lbl, stats[0].xs(st_id, level="station_id")) for lbl, stats in lbl_to_stats.items()
+        ])
+
+        plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
+                                lbl_to_color=lbl_to_color,
+                                col_name=col_names[member_col_index],
+                                shared_ax=shared_ax,
+                                title=f"{st_name} ({st_id})",
+                                show_avg_diff=show_avg_diff)
+
+        style_axes(ax, locator_base=forecast_hour_tick_multiplier)
+        i += 1
+
+    # add overall stats plot
+    i = nsubplots - 1
+    row, col = plot_index_to_row_col(i, n_subplot_cols)
+    ax = fig.add_subplot(gs[row, col])
+
+    # get stats for all stations
+    lbl_to_series = OrderedDict([
+        (lbl, stats[1]) for lbl, stats in lbl_to_stats.items()
+    ])
+
+    plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
+                            lbl_to_color=lbl_to_color,
+                            col_name=col_names[member_col_index],
+                            shared_ax=shared_ax,
+                            title="All stations",
+                            show_avg_diff=show_avg_diff)
+
+    style_axes(ax, locator_base=forecast_hour_tick_multiplier)
+
+    legend_title = stats_functions_params[stat_suffix].get("legend_title", None)
+    ax.legend(loc="upper right", bbox_to_anchor=(1, -0.4),
+                borderaxespad=0.,
+                title=legend_title)
+
+    return fig, lbl_to_series
+
 
 
 def compare_2_simulations(swl_path_old, swl_path_new, img_dir,
@@ -659,13 +708,14 @@ def get_b2b_timeseries(lbl_to_data: dict, b2b_nhours: dict, min_valid_hour=0):
     :returns {label: {stationid: timeseries}}
     """
 
+    
     lbl_to_station_to_ts = {}
 
     for lbl, exp_data in lbl_to_data.items():
         lbl_to_station_to_ts[lbl] = {}
         for st_id, st_data in exp_data.groupby(io_manager.STID_COL_NAME):
-            ts = st_data[st_data[io_manager.VALIDH_COL_NAME] < b2b_nhours[lbl]].sort_values(io_manager.TIME_COL_NAME)
-            ts = ts[ts[io_manager.VALIDH_COL_NAME] >= min_valid_hour]
+            ts = st_data[st_data[io_manager.VALIDH_COL_NAME] < b2b_nhours[lbl]]
+            ts = ts[ts[io_manager.VALIDH_COL_NAME] >= min_valid_hour].sort_values(io_manager.TIME_COL_NAME)
             ts = ts.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="first").set_index(io_manager.TIME_COL_NAME)
             lbl_to_station_to_ts[lbl][st_id] = ts
 
