@@ -18,10 +18,11 @@ from surge_validation.config.default_params import station_dict
 import numpy as np
 import re
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
-SKIP_STATIONS = ["1430", "491"]
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# SKIP_STATIONS = ["1430", "491"]
 BSS_MARK = "bsss"
 CRPS_MARK = "scores"
 CRPS_INDEX = 1
@@ -47,7 +48,7 @@ def get_st_id(in_file: Path):
     return None
 
 
-def read_files(data_paths, usecols, contains=BSS_MARK):
+def read_files(data_paths, usecols, contains=BSS_MARK, skip_stations=()):
     """
     Read files from the disk
     :param data_paths:
@@ -65,7 +66,7 @@ def read_files(data_paths, usecols, contains=BSS_MARK):
 
             st_id = get_st_id(pth)
 
-            if st_id in SKIP_STATIONS:
+            if st_id in skip_stations:
                 logger.info(f"Skipping {st_id} ... ")
                 continue
 
@@ -78,16 +79,19 @@ def read_files(data_paths, usecols, contains=BSS_MARK):
     return result
 
 
-def read_bss_files(data_paths: dict) -> dict:
+def read_bss_files(data_paths: dict, skip_stations: list = ()) -> dict:
     """
     :param data_paths:
     :return: {label: {stid: dataframe}}
     """
-    return read_files(data_paths, usecols=(0, 1, 2, 3, 4))
+    return read_files(data_paths, usecols=(0, 1, 2, 3, 4), 
+                      skip_stations=skip_stations)
 
 
-def read_crps_files(data_paths: dict) -> dict:
-    return read_files(data_paths, usecols=(0, 1, 2, 3, -1), contains=CRPS_MARK)
+def read_crps_files(data_paths: dict, skip_stations: list = ()) -> dict:
+    return read_files(data_paths, usecols=(0, 1, 2, 3, -1), 
+                      contains=CRPS_MARK, 
+                      skip_stations=skip_stations)
 
 
 def plot_panel(ax, data, out_dir=None):
@@ -248,21 +252,26 @@ def main():
     parser.add_argument("--crpslim", nargs="+", default=STAT_TO_YLIM[CRPS_MARK],
                         required=False, type=float, help="y axis limits on the plot (CRPS)")
 
+    parser.add_argument("--skip-stations", nargs="+", 
+                        required=False, default=[], 
+                        help="list of station ids to skip")
+
 
 
     args = parser.parse_args()
-    # logger.debug(args)
+    logger.debug(args)
 
     cur_station_dict = station_dict.copy()
     cur_station_dict.update({"all": "All stations"})
 
     data_paths = OrderedDict(list(zip(args.labels, [Path(p) for p in args.paths])))
+
     data_colors = OrderedDict(list(zip(args.labels, args.colors)))
 
     logger.debug([data_paths, data_colors])
 
-    bss_data = read_bss_files(data_paths)
-    crps_data = read_crps_files(data_paths)
+    bss_data = read_bss_files(data_paths, skip_stations=args.skip_stations)
+    crps_data = read_crps_files(data_paths, skip_stations=args.skip_stations)
 
     # add nsamples to the bss_data
     for label, stid_to_bss_vals in bss_data.items():
@@ -277,9 +286,19 @@ def main():
         bss_avg = None
         crps_avg = None
 
-        total_samples = None
-
         stid_to_crps_vals = crps_data[label]
+
+        weights = {stid: df.iloc[:, -1] for stid, df in stid_to_crps_vals.items()}
+
+        norms_for_lead = np.array([w for w in weights.values()]).sum(axis=0)
+
+        print(label, norms_for_lead)
+
+        for stid in weights:
+            weights[stid] /= norms_for_lead
+
+        
+
         for st_id, bss_vals in stid_to_bss_vals.items():
             crps_vals = stid_to_crps_vals[st_id]
             if bss_avg is None:
@@ -290,32 +309,30 @@ def main():
 
                 # calculate mean limits as well, if available
                 for di in [0, 1, 2]:
-                    bss_avg.iloc[:, BSS_INDEX + di] = bss_vals.iloc[:, BSS_INDEX + di] * crps_vals.iloc[:, -1]
-                    crps_avg.iloc[:, CRPS_INDEX + di] = crps_vals.iloc[:, CRPS_INDEX + di] * crps_vals.iloc[:, -1]
+                    bss_avg.iloc[:, BSS_INDEX + di] = bss_vals.iloc[:, BSS_INDEX + di] * weights[stid]
+                    crps_avg.iloc[:, CRPS_INDEX + di] = crps_vals.iloc[:, CRPS_INDEX + di] * weights[stid]
 
-                total_samples = crps_vals.iloc[:, -1]
             else:
 
                 # calculate mean limits as well, if available
                 for di in [0, 1, 2]:
-                    bss_avg.iloc[:, BSS_INDEX + di] += bss_vals.iloc[:, BSS_INDEX + di] * crps_vals.iloc[:, -1]
-                    crps_avg.iloc[:, CRPS_INDEX + di] += crps_vals.iloc[:, CRPS_INDEX + di] * crps_vals.iloc[:, -1]
+                    bss_avg.iloc[:, BSS_INDEX + di] += bss_vals.iloc[:, BSS_INDEX + di] * weights[stid]
+                    crps_avg.iloc[:, CRPS_INDEX + di] += crps_vals.iloc[:, CRPS_INDEX + di] * weights[stid]
 
-                total_samples += crps_vals.iloc[:, -1]
 
-                # update the total number of samples
-                bss_avg.iloc[:, -1] = total_samples
-                crps_avg.iloc[:, -1] = total_samples
+            # update the total number of samples / not really used?
+            bss_avg.iloc[:, -1] = norms_for_lead
+            crps_avg.iloc[:, -1] = norms_for_lead
+
 
         # create a dummy station all
         stid_to_crps_vals["all"] = crps_avg
         stid_to_bss_vals["all"] = bss_avg
-
-        # means for all stations
-        # calculate mean limits as well, if available
-        for di in [0, 1, 2]:
-            stid_to_crps_vals["all"].iloc[:, CRPS_INDEX + di] = crps_avg.iloc[:, CRPS_INDEX + di] / total_samples
-            stid_to_bss_vals["all"].iloc[:, BSS_INDEX + di] = bss_avg.iloc[:, BSS_INDEX + di] / total_samples
+        print(crps_avg.iloc[0, CRPS_INDEX])
+        
+        for stid in weights:
+            print(weights[stid][0], stid, stid_to_crps_vals[stid].iloc[0, CRPS_INDEX], stid_to_crps_vals[stid].iloc[0, -1], norms_for_lead[0])
+        
 
     # create the directory for output figures if it does not exist
     out_dir = Path(args.out_dir)
