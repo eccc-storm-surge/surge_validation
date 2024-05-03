@@ -141,7 +141,7 @@ def plot_crps_bss(data: dict, data_colors: dict,
         c = i % ncols
         ax = fig.add_subplot(gs[r, c])
 
-        ax.set_title(cur_station_dict[st_id])
+        ax.set_title(cur_station_dict.get(st_id, st_id))
 
         for label, stid_to_vals in data.items():
             yvals = stid_to_vals[st_id].iloc[:, ycol]
