@@ -256,12 +256,23 @@ def main():
                         required=False, default=[], 
                         help="list of station ids to skip")
 
+    parser.add_argument("--obs-file", type=Path, 
+                        required=False, default=None, 
+                        help="obs file to provide mapping between station id to station name")
+
 
 
     args = parser.parse_args()
     logger.debug(args)
 
     cur_station_dict = station_dict.copy()
+
+    if args.obs_file is not None:
+        assert args.obs_file.exists(), f"specified obs file does not exist {args.obs_file}."
+        _df = pd.read_csv(args.obs_file, sep=r"\s+", skiprows=2, converters={"ID": str, "NO": str})
+
+        cur_station_dict.update(dict(zip(_df.NO.values, _df.ID.values)))
+
     cur_station_dict.update({"all": "All stations"})
 
     data_paths = OrderedDict(list(zip(args.labels, [Path(p) for p in args.paths])))
