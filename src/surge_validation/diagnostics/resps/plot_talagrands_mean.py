@@ -20,7 +20,7 @@ def parse_lead(f_name: str) -> int:
         raise ValueError(f"file name is not recognized: {f_name}")
 
 
-def read_data(inp_dir: Path, file_ext: str = "csv") -> dict:
+def read_data(inp_dir: Path, file_ext: str = "csv", skip_stations=()) -> dict:
     """
     return dict {lead_token: dataframe}
     """
@@ -30,6 +30,16 @@ def read_data(inp_dir: Path, file_ext: str = "csv") -> dict:
     for p in inp_dir.iterdir():
         
         if not p.name.endswith(file_ext):
+            continue
+
+        skip_this_file = False
+        for askip in skip_stations:
+            if f"HR{askip}_" in p.name:
+                print(f"skipping {p}, as it is in the list of stations to ignore")
+                skip_this_file = True
+                break
+        
+        if skip_this_file:
             continue
 
         lead = parse_lead(p.name)
@@ -74,7 +84,10 @@ def main():
                         type=Path,
                         help="Path to the folder, where to store plots",
                         required=False)
-
+    
+    parser.add_argument("--skip-stations", nargs="+", 
+                        required=False, default=[], 
+                        help="list of station ids to skip")
 
     args = parser.parse_args()
     # logger.debug(args)
@@ -107,9 +120,10 @@ def main():
 
 
     for lead, (fig, ax) in lead_to_fig_ax.items():
+        args.out_dir.mkdir(exist_ok=True, parents=True)
         ax.set_title(f"Lead={lead} h")
         ax.legend()
-        fig.savefig(f"lead_{lead}.png", bbox_inches="tight")
+        fig.savefig(args.out_dir / f"lead_{lead}.png", bbox_inches="tight")
         plt.close(fig)
     
 
