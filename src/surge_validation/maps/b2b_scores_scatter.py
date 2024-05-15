@@ -215,7 +215,8 @@ def plot_score_maps(station_to_scores,
             cb.ax.set_visible(j > 0 or only_one_model_label)
             if j == len(mod_labels):
 
-
+                ax.set_xlabel(f"min={vals.min():.3f}; max={vals.max():.3f}")
+                
                 cb_axis = cb.ax.xaxis if orientation == "horizontal" else cb.ax.yaxis
                 ha = "right" if orientation == "horizontal" else "left"
     
@@ -225,10 +226,12 @@ def plot_score_maps(station_to_scores,
                 fig.canvas.draw()
 
                 tick_labels = [item for item in cb_axis.get_ticklabels()]
-                tick_labels[0].set_text("NEW: better")
+                top_lab = "NEW: better" if score_id not in ["mePmO", ] else "NEW-REF > 0"
+                tick_labels[0].set_text(top_lab)
                 tick_labels[0].set_color(cmap(0.0))
 
-                tick_labels[-1].set_text("REF: better")
+                bot_lab = "REF: better" if score_id not in ["mePmO", ] else "NEW-REF < 0"
+                tick_labels[-1].set_text(bot_lab)
                 tick_labels[-1].set_color(cmap(1.0))
 
                 # print("cb ticklabels: ", tick_labels)
