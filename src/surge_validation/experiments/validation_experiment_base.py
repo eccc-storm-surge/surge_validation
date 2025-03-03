@@ -182,7 +182,7 @@ def compare_forecast(station_dict=default_params.station_dict,
                                                                                     split_seasons=split_seasons,
                                                                                     remove_ndays_mean=options.get("b2b_remove_ndays_mean", None),
                                                                                     min_valid_hour=options.get("b2b_min_lead_hour", 0),
-                                                                                    options=options)
+                                                                                    options=options, process_pool=process_pool)
 
         for current_score_list in np.array_split(b2b_scores_scatter.SCORE_IDS, 2):
 

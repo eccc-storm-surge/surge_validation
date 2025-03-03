@@ -6,7 +6,7 @@ from collections import OrderedDict
 from datetime import timedelta
 
 from bokeh.colors import RGB
-from bokeh.layouts import column
+from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource
 from matplotlib import colors
 
@@ -19,6 +19,8 @@ import pandas as pd
 
 from bokeh.models.widgets import DataTable, TableColumn
 from bokeh.models.widgets import NumberFormatter, StringFormatter
+
+from pathlib import Path
 
 from surge_validation.utils.strutils import stname_to_fname2
 
@@ -58,8 +60,11 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     :param member_id:
     :return: a dictionary of {label: {gamma2: value, sigma: value}}
     """
+    sizing_mode = "stretch_both"
 
-    logger = get_logger(__name__)
+    
+    if img_dir is None:
+        img_dir = Path(".")
 
     # make lines in bokeh wider
     linewidth = linewidth * 5
@@ -85,14 +90,15 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     st_sel_obs = st_sel_obs.asfreq("60T")["obs"]
 
     if len(st_sel_obs) == 0:
-        logger.warn(f"No obs data for {st_id}, skipping it.")
+        print(f"No obs data for {st_id}, skipping it.")
         return {}
 
     out_plot = img_dir / "interactive" / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.html"
 
     out_plot.parent.mkdir(exist_ok=True, parents=True)
     bpl.output_file(str(out_plot),  title=f"{st_name} ({st_id})")
-    p = bpl.figure(sizing_mode="stretch_both", x_axis_type="datetime", 
+    p = bpl.figure(sizing_mode=sizing_mode, 
+                   x_axis_type="datetime", 
                    title=f"{station_dict.get(st_id, st_id)} ({st_id})")
 
     for swl, model_label in zip(swl_list, model_label_list):
@@ -105,11 +111,14 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
-            logger.warning(f"No model data data for {st_id}, skipping")
+            print(f"No model data data for {st_id}, skipping")
             continue
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-        to_plot = st_sel_mod.asfreq("60T")["mod" + member_id]
+        to_plot = st_sel_mod.asfreq(pd.Timedelta(hours=1))["mod" + member_id]
+        
+        print(model_label)
+        print(to_plot.head(40))
 
         if remove_ndays_mean is not None:
             to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
@@ -165,7 +174,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
         columns = [
             TableColumn(field=key, title=key, formatter=__get_formatter(key)) for key in data
         ]
-        data_table = DataTable(columns=columns, source=source)
-        p = column(p, data_table, sizing_mode="stretch_both")
+        data_table = DataTable(columns=columns, source=source, sizing_mode=sizing_mode)
+        p = column(p, data_table, sizing_mode=sizing_mode)
 
     bpl.save(p)

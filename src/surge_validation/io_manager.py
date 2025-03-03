@@ -24,11 +24,21 @@ MODEL_AND_OBS_ONE_FILE = 2
 known_formats = [SPACE_SEPARATED_XDAT, MODEL_AND_OBS_ONE_FILE]
 
 
-def parse_valid_time(tok):
-    try:
-        return datetime.strptime(tok, "%Y%m%d%H")  # legacy format
-    except ValueError:
-        return datetime.strptime(tok, "%Y%m%d%H%M")
+def parse_valid_time(df: pd.DataFrame, time_column=4):
+    success = False
+    supported_time_formats = [r"%Y%m%d%H", r"%Y%m%d%H%M"]
+    # parse dates
+    for tf in supported_time_formats:
+        try:
+            df[time_column] = pd.to_datetime(df[time_column], format=tf, utc=True)
+            success = True
+        except ValueError:
+            pass
+
+    if not success:
+        raise ValueError(f"Could not parse dates from the dataframe: \n{df.head() = }\n")
+
+
 
 def read_wl_station_data(data_store, station_dict=None,
                          fname_suffix=".dat",
@@ -57,14 +67,26 @@ def read_wl_station_data(data_store, station_dict=None,
     # try different separators
     sep_list = [r"\s+", ","]
     ve_saved = None
+    converters = {
+        0: float,
+        1: str,
+        2: float, 
+        3: float,
+    }
+
+    df = pd.DataFrame()
     for sep in sep_list:
         try:
-            df = pd.read_csv(data_store_p, sep=sep, header=None, index_col=False,
-                            converters={0: float,
-                                        1: str,
-                                        2: float, 
-                                        3: float,
-                                        4: parse_valid_time})
+            df = pd.read_csv(data_store_p, sep=sep, 
+                             header=None, 
+                             index_col=None, 
+                             engine="pyarrow")
+
+            for col, con in converters.items():
+                df[col] = df[col].astype(con)
+
+            parse_valid_time(df)
+
             ve_saved = None
             break
         except ValueError as ve:
@@ -119,10 +141,11 @@ def read_wl_station_data(data_store, station_dict=None,
         logger.info("Discarding {} first and {} last forecasts, for transients removal")
         to = df[DATEO_COL_NAME]
         to_unique = to.sort_values().drop_duplicates()
-        to_min = to_unique.iloc[n_ignore_edge_forecasts["beg"]]
-        to_max = to_unique.iloc[len(to_unique) - n_ignore_edge_forecasts["end"] - 1]
+        if len(to_unique) > 0:
+            to_min = to_unique.iloc[n_ignore_edge_forecasts["beg"]]
+            to_max = to_unique.iloc[len(to_unique) - n_ignore_edge_forecasts["end"] - 1]
 
-        df = df[(to >= to_min) & (to <= to_max)]
+            df = df[(to >= to_min) & (to <= to_max)]
 
     return df
 
@@ -146,7 +169,7 @@ def get_model_column_names(df, suffix=""):
     return [f"{c}{suffix}" for c in df if c.startswith("mod")]
 
 
-def get_station_ids(data_path: Path, data_fraction_limit=0.3) -> set:
+def get_station_ids(data_path: Path, data_fraction_limit=0.1) -> set:
     """
     :param: data_fraction_limit smallest fraction of data availability to have for a station to be considered for scoring 
             n1/nmax >= data_fraction_limit

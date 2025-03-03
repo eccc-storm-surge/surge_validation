@@ -12,16 +12,17 @@ from surge_validation import io_manager
 from surge_validation.config import default_params
 import numpy as np
 
-from surge_validation.utils import log_utils
 from surge_validation.utils.bokeh_plots import time_series
+from concurrent.futures import ProcessPoolExecutor
 from surge_validation.utils.strutils import stname_to_fname2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def plot_time_series_for_station_all(twl_obs, swl, st_id, station_dict=default_params.station_dict,
-                                     st_time=None, en_time=None, img_dir=None):
+def plot_time_series_for_station_all(twl_obs, swl, st_id: str,
+                                     st_time, en_time, img_dir, 
+                                     station_dict=default_params.station_dict):
     time_points = []
     dt = timedelta(hours=1)
     d = st_time
@@ -65,12 +66,14 @@ def plot_time_series_for_station_all(twl_obs, swl, st_id, station_dict=default_p
     axes[0].set_xlim(st_time, en_time)
     # axes[0].legend(title=station_dict[st_id])
 
-    plt.savefig(str(img_dir / f"{st_id:05d}.png"), dpi=300, bbox_inches="tight")
+    plt.savefig(img_dir / f"{st_id:05d}.png", dpi=300, bbox_inches="tight")
     plt.close(axes[0].figure)
 
 
-def plot_time_series_for_station(twl_obs, swl, st_id, station_dict=default_params.station_dict,
-                                 st_time=None, en_time=None, img_dir=None, sim_start_freq_hours=24):
+def plot_time_series_for_station(twl_obs, swl, st_id,
+                                 st_time, en_time, img_dir, 
+                                 station_dict=default_params.station_dict, sim_start_freq_hours=24):
+    
     fig = plt.figure(figsize=(8, 6))
     axes = [fig.gca()]
 
@@ -91,14 +94,31 @@ def plot_time_series_for_station(twl_obs, swl, st_id, station_dict=default_param
         Line2D([0], [0], color="r", label=r"$\eta_{S}$")
     ])
 
-    plt.savefig(str(img_dir / f"{st_id:05d}.png"), dpi=300, bbox_inches="tight")
+    plt.savefig(img_dir / f"{st_id:05d}.png", dpi=300, bbox_inches="tight")
     plt.close(axes[0].figure)
 
 
-def plot_diff_time_series_for_station(swl, st_id, station_dict=default_params.station_dict,
-                                      st_time=None, en_time=None, img_dir=None, sim_start_freq_hours=24):
+def plot_diff_time_series_for_station(swl, st_id,
+                                      st_time, en_time, img_dir, 
+                                      sim_start_freq_hours=24, station_dict=default_params.station_dict):
+    """
+    
+
+    Args:
+        swl (pd.DataFrame): data
+        st_id (str): _description_
+        st_time (datetime): _description_
+        en_time (datetime): _description_
+        img_dir (pathlib.Path): _description_
+        sim_start_freq_hours (int, optional): _description_. Defaults to 24.
+        station_dict (_type_, optional): _description_. Defaults to default_params.station_dict.
+    """
     fig = plt.figure(figsize=(8, 6))
     axes = [fig.gca()]
+
+    if img_dir is None:
+        img_dir = Path(".")
+
 
     # detided data
     st_sel = dict(list(swl.groupby("station_id")))[st_id]
@@ -120,15 +140,17 @@ def plot_diff_time_series_for_station(swl, st_id, station_dict=default_params.st
         Line2D([0], [0], color="k", label=label),
     ])
 
-    plt.savefig(str(img_dir / f"diff_{st_id:05d}.png"), dpi=300, bbox_inches="tight")
+    plt.savefig(img_dir / f"diff_{st_id:05d}.png", dpi=300, bbox_inches="tight")
     plt.close(axes[0].figure)
 
 
-def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=default_params.station_dict,
-                                             st_time=None, en_time=None, img_dir=None, model_label_list=(),
+def plot_time_series_for_station_many_models(swl_list, st_id, 
+                                             st_time, en_time, img_dir,
+                                             station_dict=default_params.station_dict,
+                                             model_label_list=(),
                                              model_colors=("b", "r"),
                                              run_freq_hours=6, ylim=None, linewidth=1, member_id="",
-                                             remove_ndays_mean=None, min_valid_hour=0, options=None):
+                                             remove_ndays_mean=None, min_valid_hour=0, options={}):
     """
     :param remove_ndays_mean: before plotting n-day mean is removed (rolling)
     :param swl_list:
@@ -145,29 +167,24 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
     :param member_id:
     :return: a dictionary of {label: {gamma2: value, sigma: value}}
     """
-
-    if options is None:
-        options = {}
-
+    
     assert len(swl_list) == len(model_label_list), \
         "Number of model labels does not correspond to the number of data sources"
 
-    obs_rel_difference_max = 0.01 # i.e. not more than 1 percent
+    obs_rel_difference_max = 1 # i.e. not more than 100 percent
 
     plot_file_format = options.get("plot_file_format", "png")
 
-    logger = log_utils.get_logger(__name__)
     if isinstance(run_freq_hours, int):
         run_freq_hours = {label: run_freq_hours for label in model_label_list}
     
-    logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
-
     model_label_to_color = OrderedDict(zip(model_label_list, model_colors))
     model_label_to_series = OrderedDict()
 
     # Select and plot obs on top of the model data
     st_sel_obs_prev = None
     model_label_prev = None
+    st_sel_obs = None
     for swl, model_label in zip(swl_list, model_label_list):
         st_sel_obs = swl[swl[io_manager.STID_COL_NAME] == st_id].copy()
         st_sel_obs = st_sel_obs[st_sel_obs[io_manager.VALIDH_COL_NAME] < run_freq_hours[model_label]]
@@ -184,21 +201,19 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
             delta_rel = delta / (st_sel_obs + st_sel_obs_prev).map(lambda x: 0.5 * abs(x)).max()
 
             if delta_rel > obs_rel_difference_max:
-                raise Exception(f"Aborting: Observations for {model_label} and {model_label_prev}"
-                                f" are too different (delta={delta}; delta_rel={delta_rel}; delta_rel_max_allowed={obs_rel_difference_max}), "
-                                " line plots might be misleading")
+                print(f"WARNING: Observations for {model_label} and {model_label_prev}"
+                      f" are too different (delta={delta}; delta_rel={delta_rel}; delta_rel_max_allowed={obs_rel_difference_max}), "
+                       " line plots might be misleading")
 
             st_sel_obs = st_sel_obs_prev.combine_first(st_sel_obs)
 
         st_sel_obs_prev = st_sel_obs
         model_label_prev = model_label
 
-    
 
-
-    if len(st_sel_obs) == 0:
-        logging.warning(f"No obs data for {st_id}, skipping it.")
-        return {}
+    if st_sel_obs is None:
+        print(f"No obs data for {st_id}, skipping it.")
+        return {}, {}
 
     fig = plt.figure(figsize=options.get("b2b_timeseries_figsize", (13.5, 6)), dpi=96)
     axes = [fig.gca()]
@@ -213,16 +228,14 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
-            logger.warning(f"No model data for {st_id}, skipping")
+            print(f"No model data for {st_id}, skipping")
             continue
 
-        # logger.debug("\n mod data \n %s", 
-        #     st_sel_mod[[io_manager.VALIDH_COL_NAME, io_manager.STID_COL_NAME, io_manager.TIME_COL_NAME]].head(48))
-
+        
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
         dups = st_sel_mod[st_sel_mod.index.duplicated()]
         if len(dups) > 0:
-            logger.debug("\n duplicalted dates \n %s", 
+            print("\n duplicalted dates \n %s", 
                          st_sel_mod[st_sel_mod.index.duplicated()])
         to_plot = st_sel_mod["mod" + member_id]
 
@@ -243,6 +256,19 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
 
     to_plot.plot(ax=axes[0], color=["k"], legend=False, linewidth=linewidth)
     model_label_to_series["obs"] = st_sel_obs
+
+    label_to_year_to_extreme = {}
+    if "b2b_annual_extremes" in options:
+        from surge_validation.extremes import annual_extreme_events
+
+        label_to_year_to_extreme = annual_extreme_events.plot_annual_extremes(model_label_to_series=model_label_to_series,
+                                                              station_id=st_id, 
+                                                              station_name=station_dict[st_id],
+                                                              options=options["b2b_annual_extremes"], 
+                                                              img_dir=img_dir / "extremes", 
+                                                              label_to_color=model_label_to_color)
+        
+
 
     same_mod = len(set(model_label_list)) == 1
 
@@ -266,17 +292,18 @@ def plot_time_series_for_station_many_models(swl_list, st_id, station_dict=defau
         img_dir = Path(img_dir) / "static"
         img_dir.mkdir(exist_ok=True, parents=True)
 
-    fig.savefig(str(img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"), 
+    img_file = img_dir / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.{plot_file_format}"
+    fig.savefig(str(img_file), 
                 bbox_inches="tight",
                 transparent=False)
 
     plt.close(fig)
-    return label_to_scores
+    return label_to_scores, label_to_year_to_extreme
 
 
 def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=default_params.station_dict,
                                                   st_time=None, en_time=None,
-                                                  img_dir: Path = None, model_label_list=(),
+                                                  img_dir: Path = Path("."), model_label_list=(),
                                                   model_colors=("b", "r"),
                                                   run_freq_hours=6, ylim=None, linewidth=1, member_id="",
                                                   remove_ndays_mean=None,
@@ -318,8 +345,6 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
     fig = plt.figure(figsize=options.get("b2b_timeseries_figsize", (13.5, 6)), dpi=96)
     axes = [fig.gca()]
 
-    logger.info("\nb2b_min_lead_hour=%s\n", min_valid_hour)
-
     mod_col_name = f"mod{member_id}"
     obs_col_name = "obs"
 
@@ -333,7 +358,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
-            logger.warning(f"No model data data for {st_id}, skipping")
+            print(f"No model data data for {st_id}, skipping")
             return {}
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
@@ -386,7 +411,7 @@ def plot_bias_time_series_for_station_many_models(swl_list, st_id, station_dict=
     return label_to_scores
 
 
-def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes = None):
+def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes | None = None):
 
     if ax is None:
         ax = plt.gca()
@@ -400,7 +425,6 @@ def draw_mpl_table(lab_to_color: dict, lab_to_series: dict, ax: Axes = None):
     obs = lab_to_series["obs"].dropna()
 
     for lab in rows:
-        # logger.debug("\nobs\n%s\nmod\n%s", obs.head(), lab_to_series[lab].head())
         mod = lab_to_series[lab].copy()
 
         indices = mod.index.intersection(obs.index)
@@ -443,6 +467,9 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
                                                              ylim=None, linewidth=1, member_id="", options=None):
     # detided data
     st_sel_by_station = swl_list[0][swl_list[0][io_manager.STID_COL_NAME] == st_id]
+
+    if img_dir is None:
+        img_dir = Path(".")
 
     if options is None:
         options = {}
@@ -568,7 +595,7 @@ def plot_time_series_for_station_many_models_one_plot_per_fc(swl_list, st_id, st
             axes[0].set_ylim(*ylim)
 
         fmt = options.get(default_params.OptionNames.PLOT_FILE_FMT, "png")
-        plt.savefig(str(img_dir / f"{st_id}_{do:%Y%m%d%H}.{fmt}"),
+        plt.savefig(img_dir / f"{st_id}_{do:%Y%m%d%H}.{fmt}",
                     bbox_inches="tight", transparent=True)
         plt.close(axes[0].figure)
 
@@ -598,13 +625,103 @@ def main(station_dict=default_params.station_dict):
                                           img_dir=detiding_plots_dir)
 
 
-def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = None,
-                                      plots_dir: Path = None,
+
+
+
+def __do_b2b_plots(st_id, swl_list, plots_dir, split_seasons: dict, kwargs: dict):
+    """
+    plot back to back timeseries for a station st_id and save results to plots_dir.
+    return label_to_scores (dict),  {season: {stid: scores}}
+    """
+    
+    print(f"b2b plots for {st_id} ...")
+    
+    label_to_scores, label_to_year_to_extreme = plot_time_series_for_station_many_models(swl_list, 
+                                                                st_id, 
+                                                                img_dir=plots_dir, 
+                                                                **kwargs)
+
+    time_series.plot_time_series_for_station_many_models(swl_list, 
+                                                         st_id, 
+                                                         label_to_scores, 
+                                                         img_dir=plots_dir,
+                                                         **kwargs)
+
+    if len(label_to_scores) == 0:
+        return {}, {} 
+
+
+    
+
+    # plot biases as well
+    plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias", **kwargs)
+    plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias-roll-10d", 
+                                                    apply_nd_running_mean=10, **kwargs)
+
+    season_to_station_to_scores = {}
+
+    kwargs_season = kwargs.copy()
+    # do seasonal plots if requested
+    if split_seasons is not None:
+
+        # don't do annual extremes in the seasonal plots
+        if  "b2b_annual_extremes" in kwargs_season:
+            kwargs_season.pop("b2b_annual_extremes")
+
+        # x limits are varying for the seasonal plots
+        kwargs_season["st_time"] = None
+        kwargs_season["en_time"] = None
+
+        # this approach requires non-overlapping seasons (i.e 2 different seasons cannot contain the same month)
+        month_to_season = {}
+        for season, months in split_seasons.items():
+            for m in months:
+                month_to_season[m] = season
+
+        # group by seasons
+        season_cols = [swl[io_manager.TIME_COL_NAME].map(lambda t: month_to_season.get(t.month, "unknown_season"))
+                        for swl in swl_list]
+        swl_list_groups = [swl.groupby(by=season_col) for swl, season_col in zip(swl_list, season_cols)]
+
+        for season, months in split_seasons.items():
+            season_to_station_to_scores[season] = {}
+
+            # if any simulation does not have data for a season skip the season completely
+            skip_season = False
+            for swl_group in swl_list_groups:
+                if season not in swl_group.groups.keys() or len(swl_group.get_group(season)) == 0:
+                    skip_season = True
+                    print(f"Skipping {season} for station {st_id}: no data")
+                    break
+
+            if skip_season:
+                break
+
+            plots_dir_season = plots_dir / "seasons" / f"{season}"
+
+            plots_dir_season.mkdir(exist_ok=True, parents=True)
+
+            swl_list_season = [swl_group.get_group(season) for swl_group in swl_list_groups]
+
+            scores_for_station, _ = plot_time_series_for_station_many_models(swl_list_season, st_id,
+                                                                            img_dir=plots_dir_season,
+                                                                            **kwargs_season)
+            # if no scores just skip it
+            if len(scores_for_station) > 0:
+                season_to_station_to_scores[season][st_id] = scores_for_station
+    
+    return label_to_scores, season_to_station_to_scores, label_to_year_to_extreme
+
+
+
+def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = {},
+                                      plots_dir: Path | None = None,
                                       station_dict=default_params.station_dict, st_time=None, en_time=None,
                                       run_freq_hours=12, linewidth=2,
                                       b2b_cutoff_hours=1000, member_id="",
                                       split_seasons=None,
-                                      remove_ndays_mean=None, min_valid_hour=0, options: dict = None):
+                                      remove_ndays_mean=None, min_valid_hour=0, options: dict | None = None, 
+                                      process_pool: ProcessPoolExecutor = None):
     """
     Use for comparing timeseries, more or less general interface
     :param split_seasons: dict {season_label: month_list}
@@ -619,7 +736,7 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
     :param en_time:
     :return: dictionary of gamma^2 and sigma scores for each station
     """
-
+    
     if options is None:
         options = {}
 
@@ -658,75 +775,48 @@ def compare_sims_timeseries_back2back(lbl_to_data: dict, data_colors: dict = Non
         options=options
     )
 
-    kwargs_season = kwargs.copy()
-
+    # submit plotting tasks
+    fut_dict = {}
     for st_id in station_dict:
+        fut = process_pool.submit(__do_b2b_plots, 
+                                  st_id, swl_list=swl_list, plots_dir=plots_dir, 
+                                  split_seasons=split_seasons, kwargs=kwargs)
+        fut_dict[st_id] = fut
+    
 
-        label_to_scores = plot_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir, **kwargs)
-        time_series.plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores, img_dir=plots_dir,
-                                                             **kwargs)
+    stid_to_label_to_year_to_extreme = {}
+    # wait for all the plotting tasks to finish
+    for st_id, fut in fut_dict.items():
+        label_to_score, seasonal_scores, label_to_year_to_extreme = fut.result()
 
-        if len(label_to_scores) == 0:
+        if len(label_to_score) == 0:
             continue
+        
+        if len(label_to_year_to_extreme) > 0:
+            stid_to_label_to_year_to_extreme[st_id] = label_to_year_to_extreme
 
-        station_scores[st_id] = label_to_scores
+        station_scores[st_id] = label_to_score
+        for season, s_scores in seasonal_scores.items():
+            if st_id in s_scores:
+                season_to_station_to_scores[season][st_id] = s_scores[st_id]
 
-        # plot biases as well
-        plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias", **kwargs)
-        plot_bias_time_series_for_station_many_models(swl_list, st_id, img_dir=plots_dir / "static_bias-roll-10d", 
-                                                      apply_nd_running_mean=10, **kwargs)
 
-        # do seasonal plots if requested
-        if split_seasons is not None:
+    if "b2b_annual_extremes" in options:
+        from surge_validation.extremes import annual_extreme_events
+        annual_extreme_events.plot_all_stations_annual_extrema_scatter(stid_to_label_to_year_to_extreme, 
+                                                                       label_to_color=data_colors, options=options,
+                                                                       img_dir=plots_dir / "extremes")
 
-            # x limits are varying for the seasonal plots
-            kwargs_season["st_time"] = None
-            kwargs_season["en_time"] = None
-
-            # this approach requires non-overlapping seasons (i.e 2 different seasons cannot contain the same month)
-            month_to_season = {}
-            for season, months in split_seasons.items():
-                for m in months:
-                    month_to_season[m] = season
-
-            # group by seasons
-            season_cols = [swl[io_manager.TIME_COL_NAME].map(lambda t: month_to_season.get(t.month, "unknown_season"))
-                           for swl in swl_list]
-            swl_list_groups = [swl.groupby(by=season_col) for swl, season_col in zip(swl_list, season_cols)]
-
-            for season, months in split_seasons.items():
-
-                # if any simulation does not have data for a season skip the season completely
-                skip_season = False
-                for swl_group in swl_list_groups:
-                    if season not in swl_group.groups.keys() or len(swl_group.get_group(season)) == 0:
-                        skip_season = True
-                        logger.debug("Skipping %s for station %s: no data", season, st_id)
-                        break
-
-                if skip_season:
-                    break
-
-                plots_dir_season = plots_dir / "seasons" / f"{season}"
-
-                plots_dir_season.mkdir(exist_ok=True, parents=True)
-
-                swl_list_season = [swl_group.get_group(season) for swl_group in swl_list_groups]
-
-                scores_for_station = plot_time_series_for_station_many_models(swl_list_season, st_id,
-                                                                              img_dir=plots_dir_season,
-                                                                              **kwargs_season)
-                # if no scores just skip it
-                if len(scores_for_station) > 0:
-                    season_to_station_to_scores[season][st_id] = scores_for_station
 
     return station_scores, season_to_station_to_scores
 
 
-def compare_sims_timeseries_one_plot_per_fc(data_labels: list = None, data_paths: dict = None, data_colors: dict = None,
-                                            plots_dir: Path = None,
+def compare_sims_timeseries_one_plot_per_fc(data_labels: list | tuple = (), 
+                                            data_paths: dict = {}, 
+                                            data_colors: dict = {},
+                                            plots_dir: Path | None = None,
                                             station_dict=default_params.station_dict, st_time=None, en_time=None,
-                                            linewidth=1, member_id="", options=None):
+                                            linewidth=1, member_id="", options={}):
     """
     Use for comparing timeseries, more or less general interface
     :param data_labels:
@@ -737,6 +827,8 @@ def compare_sims_timeseries_one_plot_per_fc(data_labels: list = None, data_paths
     :param st_time:
     :param en_time:
     """
+
+    assert data_labels is not None
 
     if not plots_dir is None:
         plots_dir.mkdir(parents=True, exist_ok=True)

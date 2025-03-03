@@ -10,6 +10,8 @@ def get_process_pool_executor(nprocs=DEFAULT_MAX_PROCESS_WORKERS):
     global _process_pool_executor
     if _process_pool_executor is None:
         _process_pool_executor = ProcessPoolExecutor(max_workers=nprocs)
+    else:
+        print("reusing existing process_pool_executor.")
     return _process_pool_executor
 
 

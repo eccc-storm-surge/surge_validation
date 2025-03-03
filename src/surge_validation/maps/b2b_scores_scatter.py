@@ -12,12 +12,14 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import List
+import typing
 
 from surge_validation import io_manager
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 
 from surge_validation.config import default_params
+import warnings
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -80,7 +82,7 @@ def plot_score_maps(station_to_scores,
                     mod_labels, 
                     data_paths,
                     img_dir: Path, map_label="",
-                    score_ids: List[str] = None,
+                    score_ids: List[str] | None = None,
                     plot_params=None):
     """
     Args:
@@ -137,11 +139,11 @@ def plot_score_maps(station_to_scores,
 
     label_to_scores = {}
     label_to_counts = {}
-    for stid in station_info.index:
+    for stid in station_info.index.intersection(station_to_scores):
 
-        if stid not in station_to_scores or station_to_scores[stid] is None:
-            logger.info(f"Stats were not calculated for {stid} , not mapping it.")
-            continue
+        # if stid not in station_to_scores or station_to_scores[stid] is None:
+        #     logger.info(f"Stats were not calculated for {stid} , not mapping it.")
+        #     continue
 
         lat, lon = [station_info.loc[stid, cn] for cn in [io_manager.LAT_COL_NAME, io_manager.LON_COL_NAME]]
 
@@ -159,6 +161,10 @@ def plot_score_maps(station_to_scores,
                 label_to_scores[label][score_id].append(station_to_scores[stid][label][score_id])
                 label_to_counts[label][score_id].append(station_to_scores[stid][label]["count"])
 
+    # 
+    if len(label_to_scores) == 0:
+        warnings.warn(f"no scores to plot a map, skipping: \n {station_to_scores = }")
+        return
 
     
     # create grid of axes
@@ -298,11 +304,23 @@ def save_scores_to_txt(station_scores: dict, labels, img_dir: Path):
     :param labels:
     :param img_dir:
     """
+    import warnings
+
+    if len(station_scores) == 0:
+        warnings.warn("No scores to save to txt: do nothing")
+        return
 
     txt_dir = img_dir / "txt_scores"
     txt_dir.mkdir(exist_ok=True)
 
+
+    print(station_scores)
+    print(labels)
+
     station_ids = sorted(station_scores)
+    
+    print(station_ids)
+
     score_ids = sorted(station_scores[station_ids[0]][labels[0]])
 
     index = pd.MultiIndex.from_product([station_ids, score_ids], names=["station", "score"])
