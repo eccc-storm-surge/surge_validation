@@ -400,8 +400,8 @@ def plot_score_supbplots_per_station(lbl_to_stats: dict, station_dict: dict,
     nrows = nsubplots // n_subplot_cols + int(nsubplots % n_subplot_cols != 0)
 
     panel_width, panel_height = score_plots_params.get("single_panel_figsize", (7.5, 5.5))
-    fig = plt.figure(figsize=(panel_width * n_subplot_cols, panel_height * nrows), dpi=96)
-    gs = GridSpec(nrows, n_subplot_cols, top=0.90, wspace=0.4)
+    fig = plt.figure(figsize=(panel_width * n_subplot_cols, panel_height * nrows), dpi=96, constrained_layout=True)
+    gs = GridSpec(nrows, n_subplot_cols, top=1 - 0.6 / nrows, wspace=0.4)
     shared_ax = None
 
     logger.debug("number of stations to process = {}".format(len(available_station_ids)))
