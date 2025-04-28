@@ -246,7 +246,7 @@ def plot_score_maps(station_to_scores,
                 cb_axis.set_ticklabels(tick_labels, ha=ha)
 
             if orientation == "horizontal":
-                cb.ax.set_ylabel(f"({SCORE_UNITS[score_id]})", rotation="horizontal", ha="right")
+                cb.ax.set_ylabel(f"({SCORE_UNITS[score_id]})", rotation="horizontal", ha="right", labelpad=20)
             else:
                 cb.ax.set_xlabel(f"({SCORE_UNITS[score_id]})", rotation="horizontal")
 
