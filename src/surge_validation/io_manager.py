@@ -200,7 +200,7 @@ def get_station_id_intersect(data_path_dict: dict) -> set:
     ])
     
 
-def read_station_dict_from_obs(obs_files) -> dict:
+def read_station_dict_from_obs(obs_files, min_lat=-90) -> dict:
     """Read station id to name mapping from an obs file or a list of obs files
 
     Args:
@@ -212,13 +212,16 @@ def read_station_dict_from_obs(obs_files) -> dict:
     result = {}
     if isinstance(obs_files, list):
         for obs in obs_files:
-            result.update(read_station_dict_from_obs(obs))    
+            result.update(read_station_dict_from_obs(obs, min_lat=min_lat))    
     
     else:
         obs = Path(obs_files)
         assert obs.exists()
 
         df = pd.read_csv(obs, skiprows=2, sep=r"\s+", converters={"NO": str})
+
+        if "LAT" in df.columns:
+            df = df.loc[df["LAT"] >= min_lat, :]
 
         st_names = df["ID"]
         if "DATA.COUNTRY" in df:
