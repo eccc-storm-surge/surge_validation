@@ -221,7 +221,7 @@ def plot_score_maps(station_to_scores,
             cb.ax.set_visible(j > 0 or only_one_model_label)
             if j == len(mod_labels):
 
-                ax.text(0.1, -0.01, f"min={vals.min():.3f}; max={vals.max():.3f}", 
+                ax.text(1.02, 1, f"$\Delta_{{\\rm min}}$={vals.min():.3f}\n$\Delta_{{\\rm max}}$={vals.max():.3f}", 
                         ha="left", va="top", transform=ax.transAxes)
                 
                 cb_axis = cb.ax.xaxis if orientation == "horizontal" else cb.ax.yaxis
