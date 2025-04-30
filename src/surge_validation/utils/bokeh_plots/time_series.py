@@ -66,6 +66,11 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     if img_dir is None:
         img_dir = Path(".")
 
+    plot_dt = pd.Timedelta(hours=1)
+    if "options" in kwargs:
+        options = kwargs["options"]
+        plot_dt = options.get("b2b_timeseries_min_dt", pd.Timedelta(hours=1))
+
     # make lines in bokeh wider
     linewidth = linewidth * 5
 
@@ -87,7 +92,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     st_sel_obs.sort_values([io_manager.TIME_COL_NAME, io_manager.VALIDH_COL_NAME], inplace=True)
     # st_sel_obs.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
     st_sel_obs.set_index(io_manager.TIME_COL_NAME, inplace=True)
-    st_sel_obs = st_sel_obs.asfreq("60T")["obs"]
+    st_sel_obs = st_sel_obs.asfreq(plot_dt)["obs"]
 
     if len(st_sel_obs) == 0:
         print(f"No obs data for {st_id}, skipping it.")
@@ -115,7 +120,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
             continue
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
-        to_plot = st_sel_mod.asfreq(pd.Timedelta(hours=1))["mod" + member_id]
+        to_plot = st_sel_mod.asfreq(plot_dt)["mod" + member_id]
         
         print(model_label)
         print(to_plot.head(40))
