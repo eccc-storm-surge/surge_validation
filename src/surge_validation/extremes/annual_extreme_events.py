@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import itertools
 import warnings
 from matplotlib.ticker import MaxNLocator
-
+from sklearn.metrics import r2_score
 
 def plot_annual_extremes(model_label_to_series: dict[str, pd.DataFrame], 
                                     station_id: str,
@@ -176,11 +176,12 @@ def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
     n_extremes_per_year = options["b2b_annual_extremes"]["n_extremes_per_year"]
 
 
-    labels = []
-    years = []
-    e_types = []
+    labels = [] # list of models to compare, including obs.
+    years = [] # list of years
+    e_types = [] # types of extremes, i.e.: min, max
     st_ids = [stid for stid in stid_label_to_year_to_extreme]
 
+    # determine the list of extreme types
     for stid, label_to_year_to_extrema in stid_label_to_year_to_extreme.items():
         labels = [label for label in label_to_year_to_extrema]
         for label, year_to_extrema in label_to_year_to_extrema.items():
@@ -195,14 +196,38 @@ def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
     for et in e_types:
         label_to_values = {ml: [] for ml in labels}
 
+        skip = set()
         for label in labels:
             label_to_values[label] = []
             for st_id, year in itertools.product(st_ids, years):
+                
                 if year in stid_label_to_year_to_extreme[st_id][label]:
-                    label_to_values[label].append(stid_label_to_year_to_extreme[st_id][label][year][et])
+                    ex_value = stid_label_to_year_to_extreme[st_id][label][year][et]
+                    label_to_values[label].append(ex_value)
                 else:
                     warnings.warn(f"annual extremes analysis, no data for {st_id = }; {label = }; {year = }")
 
+
+        # remove data if nan is encountered in either model
+        to_remove = None
+        for label, values in label_to_values.items():
+            if to_remove is None:
+                to_remove = np.isnan(values)
+            else:
+                to_remove = to_remove | np.isnan(values)
+
+        label_to_values = {label: np.array(values)[~to_remove] for label, values in label_to_values.items()}
+        
+        # check that all models have the same number of points
+        # all should be aligned with obs
+        count = None
+        label_to_count = {}
+        for label, values in label_to_values.items():
+            if count is None:
+                count = len(values)
+            
+            label_to_count[label] = len(values)
+            assert count == len(values), f"number of extremes should be the same for all models, got {label_to_count}"
 
         img_file = img_dir / f"scatter_all_stations_{et}_y{years[0]}-{years[-1]}.png"
         fig = plt.figure()
@@ -213,8 +238,11 @@ def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
             
             if label == obs_key:
                 continue
-            
-            plt.scatter(obs_data, label_to_values[label], label=label, c=label_to_color[label], zorder=2, s=10)
+           
+            r2 = r2_score(obs_data, label_to_values[label])
+            legend_label = f"{label}, $R^2 = {r2:.2f}$"
+
+            plt.scatter(obs_data, label_to_values[label], label=legend_label, c=label_to_color[label], zorder=2, s=10)
 
         ax.set_title(f"Mean of {n_extremes_per_year} annual {et}\nAll stations ({years[0]}-{years[-1]})")
         ax.legend(bbox_to_anchor=(0, -0.1), loc='upper left', borderaxespad=0)
