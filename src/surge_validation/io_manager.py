@@ -227,4 +227,6 @@ def read_station_dict_from_obs(obs_files, min_lat=-90) -> dict:
         if "DATA.COUNTRY" in df:
             st_names = st_names + ", " + df["DATA.COUNTRY"]
 
-        return dict(zip(df["NO"], st_names))
+        result = dict(zip(df["NO"], st_names))
+    
+    return result
