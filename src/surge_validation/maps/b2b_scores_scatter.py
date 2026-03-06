@@ -1,4 +1,4 @@
-"""
+r"""
 Plot maps of points (scatter) with gamma^2 and \sigma_{\varepsilon} as colors
 """
 import logging
@@ -221,8 +221,8 @@ def plot_score_maps(station_to_scores,
             cb.ax.set_visible(j > 0 or only_one_model_label)
             if j == len(mod_labels):
 
-                ax.text(1.02, 1, f"$\Delta_{{\\rm min}}$={vals.min():.3f}\n$\Delta_{{\\rm max}}$={vals.max():.3f}", 
-                        ha="left", va="top", transform=ax.transAxes)
+                ax.text(1.02, 1, fr"$\Delta_{{\rm min}}$={vals.min():.2e}" + "\n" + fr"$\Delta_{{\rm max}}$={vals.max():.2e}", 
+                        ha="left", va="bottom", transform=ax.transAxes)
                 
                 cb_axis = cb.ax.xaxis if orientation == "horizontal" else cb.ax.yaxis
                 ha = "right" if orientation == "horizontal" else "left"
@@ -263,9 +263,9 @@ def plot_score_maps(station_to_scores,
             # set pannel titles
             if j < len(mod_labels):
                 if i == 0:
-                    ax.set_title(mod_label + "\n" + f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.3e}$")
+                    ax.set_title(mod_label + "\n" + fr"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.3e}$")
                 else:
-                    ax.set_title(f"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.3e}$")
+                    ax.set_title(fr"$\overline{{{SCORE_LABELS[score_id]}}} = {val_mean:.3e}$")
             else:
                 if i == 0:
                     ax.set_title(mod_label)

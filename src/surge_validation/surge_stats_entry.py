@@ -79,7 +79,7 @@ def plot_scores_generalize(ax, lbl_to_series: dict,
     :param old_series:
     :param new_series:
     :param col_name:
-    :param shared_ax:
+    :param shared_ax: if True the x-axis is shared
     :param title:
     """
 
@@ -119,7 +119,7 @@ def plot_scores_generalize(ax, lbl_to_series: dict,
         if show_avg_diff and idx > 0:
             diff = series - lbl_to_series[plotted_labels[0]]
             txt_artist = ax.text(0.99, info_top_right,
-                                 f"$<\Delta>_t$: {diff[col_name].mean():.4f}",
+                                 fr"$<\Delta>_t$: {diff[col_name].mean():.3e}",
                                  transform=ax.transAxes,
                                  ha="right", va="top",
                                  color=color)
@@ -408,6 +408,7 @@ def plot_score_supbplots_per_station(lbl_to_stats: dict, station_dict: dict,
     logger.debug(f"Subplots: nrows={nrows}, ncols={n_subplot_cols}")
 
     i = 0
+    shared_x = True
     for _i, st_id in enumerate(sorted(available_station_ids)):
 
         # plot only selected stations
@@ -419,9 +420,6 @@ def plot_score_supbplots_per_station(lbl_to_stats: dict, station_dict: dict,
 
         row, col = plot_index_to_row_col(i, n_subplot_cols)
         ax = fig.add_subplot(gs[row, col], label=f"{row}_{col}_{st_id}")
-
-        if shared_ax is None:
-            shared_ax = ax
 
         if len(col_names) > 1:
             logging.warning(f"Using member: {col_names[member_col_index]}")
@@ -435,7 +433,7 @@ def plot_score_supbplots_per_station(lbl_to_stats: dict, station_dict: dict,
         plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
                                 lbl_to_color=lbl_to_color,
                                 col_name=col_names[member_col_index],
-                                shared_ax=shared_ax,
+                                shared_ax=shared_x,
                                 title=f"{st_name} ({st_id})",
                                 show_avg_diff=show_avg_diff)
 
@@ -455,7 +453,7 @@ def plot_score_supbplots_per_station(lbl_to_stats: dict, station_dict: dict,
     plot_scores_generalize(ax, lbl_to_series=lbl_to_series,
                             lbl_to_color=lbl_to_color,
                             col_name=col_names[member_col_index],
-                            shared_ax=shared_ax,
+                            shared_ax=shared_x,
                             title="All stations",
                             show_avg_diff=show_avg_diff)
 

@@ -211,7 +211,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id,
         model_label_prev = model_label
 
 
-    if st_sel_obs is None:
+    if st_sel_obs is None or len(st_sel_obs) == 0:
         print(f"No obs data for {st_id}, skipping it.")
         return {}, {}
 
@@ -228,7 +228,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id,
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
-            print(f"No model data for {st_id}, skipping")
+            print(f"No model data for {st_id} for {model_label = }, skipping")
             continue
 
         
@@ -286,6 +286,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id,
     if ylim is not None:
         axes[0].set_ylim(*ylim)
 
+    print(f"{st_id = }; {len(model_label_to_series) = }")
     label_to_scores = draw_mpl_table(model_label_to_color, model_label_to_series)
 
     if img_dir is not None:

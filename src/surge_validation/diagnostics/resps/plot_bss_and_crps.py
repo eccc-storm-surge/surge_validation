@@ -37,6 +37,13 @@ STAT_TO_YLIM = {
 STID_PATTERN = re.compile(r"\d+.txt$")
 
 
+def get_units(stat: str) -> str:
+    stat = stat.lower()
+    if stat.startswith("crps"):
+        return "m"
+    
+    return ""
+
 def get_st_id(in_file: Path):
     """
     :param in_file:
@@ -88,7 +95,10 @@ def read_bss_files(data_paths: dict, skip_stations: list = ()) -> dict:
                       skip_stations=skip_stations)
 
 
-def read_crps_files(data_paths: dict, skip_stations: list = ()) -> dict:
+def read_crps_files(data_paths: dict, skip_stations: list | None = None) -> dict:
+    if skip_stations is None:
+        skip_stations = []
+
     return read_files(data_paths, usecols=(0, 1, 2, 3, -1), 
                       contains=CRPS_MARK, 
                       skip_stations=skip_stations)
@@ -106,9 +116,16 @@ def plot_panel(ax, data, out_dir=None):
 
 def plot_crps_bss(data: dict, data_colors: dict,
                   out_dir: Path,
-                  stats="BSS", ycol=BSS_INDEX, cur_station_dict=None, lead_hour_max=240,
+                  stats="BSS", ycol=BSS_INDEX, 
+                  cur_station_dict=None, lead_hour_max=240,
                   ylims=(0, 1)):
     ncols = 3
+    if cur_station_dict is None:
+        cur_station_dict = {}
+
+    disp_units = f"{get_units(stats)}"
+    if len(disp_units) > 0:
+        disp_units = f" {disp_units}"
 
     plt.rcParams["font.size"] = 13
 
@@ -141,7 +158,11 @@ def plot_crps_bss(data: dict, data_colors: dict,
         c = i % ncols
         ax = fig.add_subplot(gs[r, c])
 
-        ax.set_title(cur_station_dict.get(st_id, st_id))
+        title = cur_station_dict.get(st_id, st_id)
+        if title != st_id:
+            title = f"{title} ({st_id})"
+        
+        ax.set_title(title)
 
         for label, stid_to_vals in data.items():
             yvals = stid_to_vals[st_id].iloc[:, ycol]
@@ -183,6 +204,10 @@ def plot_crps_bss(data: dict, data_colors: dict,
     st_id = "all"
 
     ax.set_title(cur_station_dict[st_id])
+    
+    
+    ref_label = None
+    ref_vals = None
     for label, stid_to_vals in data.items():
         yvals = stid_to_vals[st_id].iloc[:, ycol]
 
@@ -194,7 +219,16 @@ def plot_crps_bss(data: dict, data_colors: dict,
         yvals_min = stid_to_vals[st_id].iloc[:, ycol + 1]
         yvals_max = stid_to_vals[st_id].iloc[:, ycol + 2]
 
-        ax.plot(xvals[sel_hours], yvals[sel_hours], label=label, c=data_colors[label], lw=1, zorder=100)
+        if ref_label is not None and ref_vals is not None:
+            diff_max = max(np.abs(yvals[sel_hours] - ref_vals[sel_hours]))
+            diff_max = fr"$\left|\Delta\right|_{{\rm max}}$ = {diff_max:0.2e}"
+            disp_label = f"{label},\n{diff_max}{disp_units}"
+        else:
+            ref_label = label
+            ref_vals = yvals
+            disp_label = label
+            
+        ax.plot(xvals[sel_hours], yvals[sel_hours], label=disp_label, c=data_colors[label], lw=1, zorder=100)
         errors = [yvals[sel_hours] - yvals_min[sel_hours], yvals_max[sel_hours] - yvals[sel_hours]]
         ax.errorbar(xvals[sel_hours], yvals[sel_hours], yerr=np.array(errors), color=data_colors[label], lw=0.5)
 
