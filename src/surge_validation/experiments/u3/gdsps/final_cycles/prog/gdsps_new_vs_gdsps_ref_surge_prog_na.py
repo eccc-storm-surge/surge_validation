@@ -24,6 +24,8 @@ from surge_validation.utils import log_utils
 def fc(station_dict=default_params.station_dict,
        st_date=None,
        en_date=None, exp_id="NOT_SET"):
+    
+    assert st_date is not None and en_date is not None
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
     inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/u3/gdsps/final-cycles/prog/")
@@ -56,7 +58,7 @@ def fc(station_dict=default_params.station_dict,
     }
 
     b2b_split_seasons = {
-        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="m")
+        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="ME")
     }
 
     options = {
@@ -112,6 +114,10 @@ def main():
     station_dict = io_manager.read_station_dict_from_obs(
         "/home/olh001/Python/download_station_info/data/gdsps_baroclinicity+ice/gdsps_global_v2.obs")
 
+    exclude = ["6485", ] # exclude Tuktoyaktok due to 15m obs values
+    station_dict = {
+        k: v for k, v in station_dict.items() if k not in exclude
+    }
     fc(station_dict=station_dict, st_date=st_date, en_date=en_date, exp_id=EXP_ID)
 
 

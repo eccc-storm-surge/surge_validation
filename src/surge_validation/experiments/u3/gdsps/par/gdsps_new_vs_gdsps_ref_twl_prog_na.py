@@ -28,13 +28,13 @@ def fc(station_dict=default_params.station_dict,
     assert st_date is not None and en_date is not None
     
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
-    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/u3/gdsps/final-cycles/prog/")
+    inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/u3/gdsps/par/prog/")
 
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
 
     label = f"{exp_id}_{st_s}_{en_s}"
-    img_dir = Path(f"data/plots/u3/GDSPS/final_cycles_2021110112-2022053112/{label}")
+    img_dir = Path(f"data/plots/u3/GDSPS/par/{label}")
 
     exp_id_to_path = OrderedDict([
         ("GDSPS (PROG-REF, TWL)",
@@ -103,9 +103,9 @@ def fc(station_dict=default_params.station_dict,
 
 def main():
     # forecast
-    EXP_ID = "GDSPS_NEW_vs_GDSPS_REF_PROG_FINAL-CYCLES_TWL"
-    st_date = datetime(2021, 11, 1, 12)
-    en_date = datetime(2022, 5, 31, 12)
+    EXP_ID = "GDSPS_NEW_vs_GDSPS_REF_PROG_PAR_TWL"
+    st_date = datetime(2026, 2, 4, 12)
+    en_date = datetime(2026, 3, 4, 12)
 
     logger = log_utils.get_logger(__name__)
     logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)
@@ -113,7 +113,8 @@ def main():
     # station_dict = default_params.station_dict.copy()
     station_dict = io_manager.read_station_dict_from_obs(
         "/home/olh001/Python/download_station_info/data/gdsps_baroclinicity+ice/gdsps_global_v2.obs")
-    exclude = ["6485", ] # exclude Tuktoyaktok due to 15m obs values
+    # exclude = ["6485", ] # exclude Tuktoyaktok due to 15m obs values
+    exclude = []
     station_dict = {
         k: v for k, v in station_dict.items() if k not in exclude
     }

@@ -24,6 +24,8 @@ from surge_validation.utils import log_utils
 def fc(station_dict=default_params.station_dict,
        st_date=None,
        en_date=None, exp_id="NOT_SET"):
+    
+    assert st_date is not None and en_date is not None
 
     # img_dir = Path(f"data/plots/{label}_{datetime.utcnow():%Y%m%d%H%M}")
     inp_data_root = Path("/home/olh001/Python/loadprogs_python_experiments/data/u3/gdsps/final-cycles/prog/")
@@ -57,7 +59,7 @@ def fc(station_dict=default_params.station_dict,
     }
 
     b2b_split_seasons = {
-        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="m")
+        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="ME")
     }
 
     options = {
