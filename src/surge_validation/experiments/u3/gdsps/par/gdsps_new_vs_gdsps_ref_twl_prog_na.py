@@ -105,7 +105,7 @@ def main():
     # forecast
     EXP_ID = "GDSPS_NEW_vs_GDSPS_REF_PROG_PAR_TWL"
     st_date = datetime(2026, 2, 4, 12)
-    en_date = datetime(2026, 3, 4, 12)
+    en_date = datetime(2026, 3, 7, 12)
 
     logger = log_utils.get_logger(__name__)
     logger.info("Running %s for %s -- %s", EXP_ID, st_date, en_date)
