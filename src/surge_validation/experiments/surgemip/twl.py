@@ -32,11 +32,12 @@ def fc(station_dict=default_params.station_dict,
     label = f"{exp_id}_{st_s}_{en_s}_V4"
     img_dir = Path(f"data/plots/surgemip/{label}")
 
-    exp_id_to_path = OrderedDict([
-        ("ECCC_GDSPS (TWL)", inp_data_root / "merged_ECCC_GDSPS_2013-2018.dat"),
-        ("UND-ANL_GADCIRC-btp (TWL)", inp_data_root / "merged_UND-ANL_GADCIRC-btp_2013-2018.dat"),
+    exp_id_to_path = {
+        "ECCC_GDSPS (TWL)": inp_data_root / "merged_ECCC_GDSPS_2013-2018.dat",
+        "UND-ANL_GADCIRC-btp (TWL)": inp_data_root / "merged_UND-ANL_GADCIRC-btp_2013-2018.dat",
+        "GOOGLE-50KM-PRED. (TWL)": inp_data_root / "merged_GOOGLE_50KM_PREDICTIONS_2013-2018.dat",
         # ("ECCC_GDSPS_nofilt (TWL)", inp_data_root / "merged_ECCC_GDSPS_nofilt_2013-2018.dat"),
-    ])
+    }
 
     exp_id_labels = list(exp_id_to_path)
 
