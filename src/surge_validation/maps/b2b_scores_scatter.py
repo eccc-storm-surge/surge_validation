@@ -7,7 +7,7 @@ from pathlib import Path
 import cartopy
 import pandas as pd
 import numpy as np
-from matplotlib import cm
+import matplotlib as mpl
 from matplotlib.colors import BoundaryNorm
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -188,11 +188,11 @@ def plot_score_maps(station_to_scores,
             extend = "max"
             if j < len(mod_labels):
                 clevs = default_params.score_clevs[score_id]
-                cmap = cm.get_cmap("Oranges", len(clevs) - 1)
+                cmap = mpl.colormaps.get_cmap("Oranges").resampled(len(clevs) - 1)
             else:
                 extend = "both"
                 clevs = default_params.score_clevs[f"{score_id}_diff"]
-                cmap = cm.get_cmap("seismic", len(clevs) - 1)
+                cmap = mpl.colormaps.get_cmap("seismic").resampled(len(clevs) - 1)
 
             norm = BoundaryNorm(clevs, cmap.N)
 

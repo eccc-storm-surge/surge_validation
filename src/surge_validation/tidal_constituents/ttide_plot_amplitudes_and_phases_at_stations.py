@@ -31,7 +31,7 @@ def calc_tides_spectra(ts_data, dt=timedelta(hours=1), lat=None) -> TTideCon:
     # removes leading and trailing nans
     ts_clean = ts_data[~ts_data.isna()].asfreq(dt)
 
-    x = ts_clean.values
+    x = ts_clean.values.copy()
 
     # fill remaining nans with 0s
     nan_places = np.isnan(x)
@@ -208,7 +208,8 @@ def tidecon_to_dataframe(tidecon: TTideCon):
     fu = tidecon["fu"]
     if fu.dtype.byteorder == ">":
         # force native byteorder
-        fu = tidecon["fu"].byteswap().newbyteorder()
+        fu = tidecon["fu"]
+        fu = fu.view(fu.dtype.newbyteorder())
 
     df = pd.DataFrame({
         "nameu": tidecon["nameu"],

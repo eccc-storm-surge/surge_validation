@@ -109,7 +109,7 @@ def read_wl_station_data(data_store, station_dict=None,
 
         df.columns = col_names
 
-        df[DATEO_COL_NAME] = (df[TIME_COL_NAME] - pd.TimedeltaIndex((df[VALIDH_COL_NAME] * 3600.).astype(int), unit="seconds"))
+        df[DATEO_COL_NAME] = (df[TIME_COL_NAME] - pd.to_timedelta((df[VALIDH_COL_NAME] * 3600.).astype(int), unit="seconds"))
 
         # select only data for selected station ids
         if station_dict is not None:
