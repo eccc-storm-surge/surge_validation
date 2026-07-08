@@ -17,6 +17,7 @@ from surge_validation.experiments.validation_experiment_base import compare_fore
 
 # EXP_ID = "GDSPS_vs_RDSPS_FC_FCH2020_V3"
 from surge_validation.utils import log_utils
+import numpy as np
 
 
 # generalized plotting to several simulations
@@ -129,7 +130,7 @@ def main():
     #         station_dict_debug[k] = v
     # station_dict = station_dict_debug
 
-
+    default_params.score_clevs["sigma_diff"] = np.arange(-0.0225, 0.025, 0.005)
     # evaluation entry point
     fc(station_dict=station_dict, 
        st_date=st_date, 
