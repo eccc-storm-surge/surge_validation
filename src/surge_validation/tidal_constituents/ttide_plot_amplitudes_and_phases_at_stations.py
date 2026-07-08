@@ -143,7 +143,9 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                 df = tidecon_to_dataframe(tide_con)
 
                 ax_amp.plot(df.index, df["amp"], label=label, color=_lbl_to_color[lbl])
-                ax_amp.fill_between(df.index, df["amp"] - df["amp_err"], df["amp"] + df["amp_err"],
+                ax_amp.fill_between(df.index, 
+                                    df["amp"] - df["amp_err"], 
+                                    df["amp"] + df["amp_err"],
                                     color=_lbl_to_color[lbl], alpha=0.4)
 
                 ax_pha.plot(df.index, df["pha"], label=label, color=_lbl_to_color[lbl])
@@ -191,7 +193,7 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
             ax.tick_params(axis="x", rotation=45)
             ax.grid(linestyle="dashed")
 
-        ax_amp.legend()
+        ax_amp.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
         img_file = img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}.{plot_file_format}"
         fig.savefig(img_file, bbox_inches="tight", transparent=True)
