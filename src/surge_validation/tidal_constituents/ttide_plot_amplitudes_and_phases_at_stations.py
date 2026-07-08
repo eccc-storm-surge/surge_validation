@@ -72,6 +72,7 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
     import hvplot.pandas
     import panel
     import holoviews as hv
+    from holoviews import opts as hvopts
 
     out_dir.mkdir(exist_ok=True, parents=True)
 
@@ -106,7 +107,7 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
         err_df["Station_Name"] = [station_dict[sid] for sid in station_id_list]
         err_df = err_df.set_index("Station_Id")
 
-        table_view = panel.widgets.Tabulator(err_df.sort_index(axis="columns"))
+        table_view = panel.widgets.Tabulator(err_df.sort_index(axis="columns"), disabled=True)
 
 
         opts = dict(shared_axes=False, xrotation=90)
@@ -140,7 +141,7 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 clim = (sel_err_df[all_labels].min().min(), 
                         sel_err_df[all_labels].max().max())
                 
-                if clim[-1] < 0:
+                if clim[0] < 0:
                     abs_max = max([abs(v) for v in clim])
                     clim = (-abs_max, abs_max)
                     
@@ -150,9 +151,9 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 plots = []
                 for lbl in all_labels:
                     cur_err_map = sel_err_df.hvplot.points(
-                        x="lon", y="lat", c=lbl, clim=clim, cmap="seismic", title=f"{lbl}: {err_title}", 
+                        x="lon", y="lat", c=lbl, cmap="seismic", title=f"{lbl}: {err_title}", 
                         geo=True, tiles="OSM", hover_cols=["Station_Id", "Station_Name"],
-                        frame_width=500, frame_height=500, colorbar=True
+                        frame_width=500, frame_height=500, colorbar=True, clim=clim
                     )
                     plots.append(cur_err_map)
                 
