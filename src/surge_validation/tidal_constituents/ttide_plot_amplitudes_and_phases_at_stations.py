@@ -148,6 +148,8 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 # plot error maps
                 sel_err_df["lon"] = lon
                 sel_err_df["lat"] = lat
+                sel_err_df["Station_Name"] = [station_dict[sid] for sid in station_id_list]
+
                 plots = []
                 for lbl in all_labels:
                     cur_err_map = sel_err_df.hvplot.points(
