@@ -256,7 +256,7 @@ def compare_forecast(station_dict=default_params.station_dict,
 
     # plot constituents calculated using ttide
     if plot_tide_constituents:
-        tide_plots_dir = img_dir / "ttide-analysis"
+        tide_plots_dir = img_dir / "tide-analysis"
         ttide_plot_amplitudes_and_phases_at_stations.plot_ttide_tide_spectra(
             lbl_to_station_to_ts,
             img_dir=tide_plots_dir,

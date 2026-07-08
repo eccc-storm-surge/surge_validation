@@ -16,11 +16,12 @@ import numpy as np
 import pandas as pd
 import ttide
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 from ..utils.strutils import stname_to_fname2
 
 
-def calc_tides_spectra(ts_data, dt=timedelta(hours=1), lat=None) -> TTideCon:
+def calc_tides_spectra(ts_data, dt=timedelta(hours=1), lat=None) -> pd.DataFrame:
     """
 
     :param ts_data: timeseries with time as index, and only one data column
@@ -38,11 +39,128 @@ def calc_tides_spectra(ts_data, dt=timedelta(hours=1), lat=None) -> TTideCon:
     if np.any(nan_places):
         x[nan_places] = 0.
 
-    return ttide.t_tide(
-        x, dt=dt.total_seconds() / 3600., synth=0, ray=0.5,
+    tcon = ttide.t_tide(
+        x, dt=dt.total_seconds() // 3600, synth=0, ray=0.9,
         lat=lat, stime=ts_clean.index[0],
         out_style="classic"
     )
+
+    return tidecon_to_dataframe(tcon)
+
+
+
+def get_constituent_names(all_tide_props):
+    # get all constituent names
+    for stid, tide_props_dict in all_tide_props.items():
+        print(tide_props_dict)
+        for lbl, [df, ] in tide_props_dict.items():
+            return df.index
+
+    return []
+
+def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict, 
+                                 station_dict: dict, station_id_to_coords: dict | None = None):
+    """
+
+    produce one summary file for each constituent
+
+    Args:
+        all_tide_props: dictionary station_id to dict {model-run-label or obs: dataframe}.
+    """
+    import cmath
+    import hvplot
+    import hvplot.pandas
+    import panel
+    import holoviews as hv
+
+    out_dir.mkdir(exist_ok=True, parents=True)
+
+    
+    station_id_list = list(all_tide_props)
+    all_labels = []
+    for cname in get_constituent_names(all_tide_props):
+
+        err_dict = defaultdict(list)
+        
+        for station_id in sorted(station_id_list):
+            lbl_to_data = all_tide_props[station_id]
+            
+            if len(all_labels) == 0:
+                all_labels = list([lbl for lbl in lbl_to_data if lbl != io_manager.OBS_COL_NAME])
+
+            df_obs = lbl_to_data[io_manager.OBS_COL_NAME][0]
+
+            for lbl, [df, ] in lbl_to_data.items():
+
+                if lbl == io_manager.OBS_COL_NAME:
+                    continue
+
+                err_dict[("amp_error", lbl)].append(df.loc[cname, "amp"] - df_obs.loc[cname, "amp"])
+                err_dict[("phase_error", lbl)].append(df.loc[cname, "pha"] - df_obs.loc[cname, "pha"])
+
+                err_dict[("complex_amp_error", lbl)].append(abs( df.loc[cname, "amp"] * cmath.exp(1j * np.radians(df.loc[cname, "pha"])) - 
+                                                        df_obs.loc[cname, "amp"] * cmath.exp(1j * np.radians(df_obs.loc[cname, "pha"]))))
+
+        err_df = pd.DataFrame.from_dict(err_dict)
+        err_df["Station_Id"] = station_id_list
+        err_df["Station_Name"] = [station_dict[sid] for sid in station_id_list]
+        err_df = err_df.set_index("Station_Id")
+
+        table_view = panel.widgets.Tabulator(err_df.sort_index(axis="columns"))
+
+
+        opts = dict(shared_axes=False, xrotation=90)
+        amp_err_title = "Amplitude error [m]"
+        cmplx_amp_err_title = "Complex amplitude error [m]"
+        phase_err_title = "Phase error [deg]"
+        amp_err_gr = err_df["amp_error"].hvplot.line(title=amp_err_title).opts(**opts)
+        complex_amp_err_gr = err_df["complex_amp_error"].hvplot.line(title="Complex amplitude error [m]").opts(**opts)
+        phase_err_gr = err_df["phase_error"].hvplot.line(title="Phase error [deg]").opts(**opts)
+
+
+        column = panel.Column(
+                f"Constituent: {cname}",
+                table_view,
+                amp_err_gr, 
+                complex_amp_err_gr, phase_err_gr
+        )
+
+        if station_id_to_coords is not None:
+
+            lon, lat = [[station_id_to_coords[sid][i] for sid in station_id_list] for i in range(2)]
+            
+            err_name_to_title = {
+                "amp_error": amp_err_title,
+                "complex_amp_error": cmplx_amp_err_title, 
+                "phase_error": phase_err_title
+            }
+
+            for err_name, err_title in err_name_to_title.items():
+                sel_err_df = err_df[err_name]
+                clim = (sel_err_df[all_labels].values.min(), 
+                        sel_err_df[all_labels].values.max())
+                # plot error maps
+                sel_err_df["lon"] = lon
+                sel_err_df["lat"] = lat
+                plots = []
+                for lbl in all_labels:
+                    cur_err_map = sel_err_df.hvplot.points(
+                        x="lon", y="lat", c=lbl, clim=clim, cmap="seismic", title=f"{lbl}: {err_title}", 
+                        geo=True, tiles="OSM", hover_cols=["Station_Id", "Station_Name"],
+                        frame_width=500, frame_height=500, colorbar=True
+                    )
+                    plots.append(cur_err_map)
+                
+                layout = hv.Layout(plots).cols(len(plots))
+                layout.opts(shared_axes=True)
+                layout.values()[-1].Points.I.opts(colorbar=True)
+
+                column.append(panel.Column(err_title, layout))
+
+        hvplot.save(
+            column, out_dir / f"{cname}.html"
+        )
+
 
 
 def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
@@ -55,7 +173,7 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     options = kwargs.get("options", {})
     plot_file_format = options.get("plot_file_format", "pdf")
 
-
+    station_id_to_coords = {}
 
     # cleanup the image dir
     for f in img_dir.iterdir():
@@ -101,6 +219,9 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
             lat = data[io_manager.LAT_COL_NAME].values[0]
 
+            if station_id not in station_id_to_coords:
+                station_id_to_coords[station_id] = (data[io_manager.LON_COL_NAME].values[0], data[io_manager.LAT_COL_NAME].values[0])
+
             # calc obs
             # make it a list for uniformity
             tide_props_obs[lbl] = [calc_tides_spectra(data[io_manager.OBS_COL_NAME], dt=fs, lat=lat), ]
@@ -137,10 +258,8 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
 
             # actual plotting
 
-            for tidecon_idx, tide_con in enumerate(tide_con_list):
+            for tidecon_idx, df in enumerate(tide_con_list):
                 # logger.debug(tide_con)
-
-                df = tidecon_to_dataframe(tide_con)
 
                 ax_amp.plot(df.index, df["amp"], label=label, color=_lbl_to_color[lbl])
                 ax_amp.fill_between(df.index, 
@@ -160,19 +279,17 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
             if lbl == io_manager.OBS_COL_NAME:
                 continue
 
-            tide_con_obs = all_tide_props_obs[station_id][lbl][0]
+            df_obs = all_tide_props_obs[station_id][lbl][0]
 
-            df_obs = tidecon_to_dataframe(tide_con_obs)
+            # df_obs = tidecon_to_dataframe(tide_con_obs)
 
             # actual plotting
-            for tide_con in tide_con_list:
-
-                df_mod = tidecon_to_dataframe(tide_con)
+            for df_mod in tide_con_list:
 
                 d = ((df_mod["pha"].map(__mycos) - df_obs["pha"].map(__mycos)) ** 2 +
                      (df_mod["pha"].map(__mysin) - df_obs["pha"].map(__mysin)) ** 2) ** 0.5
 
-                xlabels = d.index.map(lambda s: "{}".format(s.decode().strip()))
+                xlabels = d.index
 
                 assert len(d) == len(df_obs)
                 to_plot = np.ma.masked_where(df_obs.loc[d.index, "amp"].values.squeeze() <= amp_limit, d.values.squeeze())
@@ -199,10 +316,13 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
         fig.savefig(img_file, bbox_inches="tight", transparent=True)
         plt.close(fig)
 
+    plot_tide_error_summary_html(img_dir / "tide-summary-html", 
+                                 all_tide_props_mod, 
+                                 station_dict=station_dict, 
+                                 station_id_to_coords=station_id_to_coords)
+
 
 def tidecon_to_dataframe(tidecon: TTideCon):
-    logger = log_utils.get_logger(__name__)
-
     # change endiannes if needed
     # fu is read from file
     fu = tidecon["fu"]
@@ -212,7 +332,7 @@ def tidecon_to_dataframe(tidecon: TTideCon):
         fu = fu.view(fu.dtype.newbyteorder())
 
     df = pd.DataFrame({
-        "nameu": tidecon["nameu"],
+        "nameu": [c if isinstance(c, str) else c.decode().strip() for c in tidecon["nameu"]],
         "fu": fu * 24,
         "amp": tidecon["tidecon"][:, 0],
         "amp_err": tidecon["tidecon"][:, 1],
