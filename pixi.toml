@@ -1,0 +1,27 @@
+[workspace]
+authors = ["Oleksandr Huziy <oleksandr.huziy@ec.gc.ca>"]
+channels = ["conda-forge"]
+name = "surge_validation"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[activation]
+env = { PYTHONPATH = "./src:$PYTHONPATH"}
+
+[dependencies]
+python = "3.12.*"
+pandas = ">=3.0.3,<4"
+holoviews = ">=1.23.1,<2"
+matplotlib = ">=3.11.0,<4"
+joblib = ">=1.5.3,<2"
+utide = ">=0.3.1,<0.4"
+resample = ">=1.10.3,<2"
+cartopy = ">=0.25.0,<0.26"
+pyarrow = ">=24.0.0,<25"
+hvplot = ">=0.12.2,<0.13"
+geoviews = ">=1.15.1,<2"
+
+[pypi-dependencies]
+ttide = { git = "https://github.com/guziy/ttide_py" }

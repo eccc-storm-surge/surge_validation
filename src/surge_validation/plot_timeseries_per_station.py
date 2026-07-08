@@ -649,7 +649,7 @@ def __do_b2b_plots(st_id, swl_list, plots_dir, split_seasons: dict, kwargs: dict
                                                          **kwargs)
 
     if len(label_to_scores) == 0:
-        return {}, {} 
+        return {}, {}, {} 
 
 
     
