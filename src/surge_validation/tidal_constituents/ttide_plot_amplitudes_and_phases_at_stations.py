@@ -137,8 +137,13 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
 
             for err_name, err_title in err_name_to_title.items():
                 sel_err_df = err_df[err_name]
-                clim = (sel_err_df[all_labels].values.min(), 
-                        sel_err_df[all_labels].values.max())
+                clim = (sel_err_df[all_labels].min().min(), 
+                        sel_err_df[all_labels].max().max())
+                
+                if clim[-1] < 0:
+                    abs_max = max([abs(v) for v in clim])
+                    clim = (-abs_max, abs_max)
+                    
                 # plot error maps
                 sel_err_df["lon"] = lon
                 sel_err_df["lat"] = lat
