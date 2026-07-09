@@ -170,7 +170,7 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 plots = []
                 for lbl in all_labels:
                     cur_err_map = sel_err_df.hvplot.points(
-                        x="lon", y="lat", c=lbl, cmap="seismic", title=f"{lbl}: {err_title}", 
+                        x="lon", y="lat", c=lbl, cmap="seismic", title=f"{lbl}", 
                         geo=True, tiles="OSM", hover_cols=["Station_Id", "Station_Name"],
                         frame_width=500, frame_height=500, colorbar=True, clim=clim
                     )
