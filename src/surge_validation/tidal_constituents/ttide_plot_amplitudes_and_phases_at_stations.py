@@ -73,6 +73,7 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
     import panel
     import holoviews as hv
     from holoviews import opts as hvopts
+    panel.extension("mathjax")
 
     out_dir.mkdir(exist_ok=True, parents=True)
 
@@ -96,8 +97,10 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 if lbl == io_manager.OBS_COL_NAME:
                     continue
 
-                err_dict[("amp_error", lbl)].append(df.loc[cname, "amp"] - df_obs.loc[cname, "amp"])
-                err_dict[("phase_error", lbl)].append(df.loc[cname, "pha"] - df_obs.loc[cname, "pha"])
+                err_dict[("amp_bias", lbl)].append(df.loc[cname, "amp"] - df_obs.loc[cname, "amp"])
+                err_dict[("amp_bias_unc_95", lbl)].append(df.loc[cname, "amp_err"] + df_obs.loc[cname, "amp_err"])
+                err_dict[("phase_bias", lbl)].append(df.loc[cname, "pha"] - df_obs.loc[cname, "pha"])
+                err_dict[("phase_bias_unc_95", lbl)].append(df.loc[cname, "pha_err"] + df_obs.loc[cname, "pha_err"])
 
                 err_dict[("complex_amp_error", lbl)].append(abs( df.loc[cname, "amp"] * cmath.exp(1j * np.radians(df.loc[cname, "pha"])) - 
                                                         df_obs.loc[cname, "amp"] * cmath.exp(1j * np.radians(df_obs.loc[cname, "pha"]))))
@@ -111,19 +114,33 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
 
 
         opts = dict(shared_axes=False, xrotation=90)
-        amp_err_title = "Amplitude error [m]"
-        cmplx_amp_err_title = "Complex amplitude error [m]"
-        phase_err_title = "Phase error [deg]"
-        amp_err_gr = err_df["amp_error"].hvplot.line(title=amp_err_title).opts(**opts)
+        amp_err_title = "Amplitude bias [m]"
+        cmplx_amp_err_title = r"$$\text{{Complex amplitude error }}|A_p e^{{i\phi_p}} - A_o e^{{i\phi_o}}|\text{{ [m]}}$$"
+        phase_err_title = "Phase bias [deg]"
+        amp_err_gr = err_df["amp_bias"].hvplot.line(title=amp_err_title).opts(**opts)
         complex_amp_err_gr = err_df["complex_amp_error"].hvplot.line(title="Complex amplitude error [m]").opts(**opts)
-        phase_err_gr = err_df["phase_error"].hvplot.line(title="Phase error [deg]").opts(**opts)
+        phase_err_gr = err_df["phase_bias"].hvplot.line(title="Phase bias [deg]").opts(**opts)
+
+
+        v_to_line_plot = {
+            "amp": amp_err_gr, "phase": phase_err_gr
+        }
+
+        for lbl in all_labels:
+
+            for v, gr in v_to_line_plot.items():
+                sel_err_df = err_df[[(f"{v}_bias_unc_95", lbl), (f"{v}_bias", lbl)]]
+                sel_err_df.columns = [f"{v}_bias_unc_95", f"{v}_bias"]
+                v_to_line_plot[v] = (gr * sel_err_df.hvplot.errorbars(y=f"{v}_bias", yerr1=f"{v}_bias_unc_95")).opts(axiswise=True, **opts)
+
 
 
         column = panel.Column(
                 f"Constituent: {cname}",
-                table_view,
-                amp_err_gr, 
-                complex_amp_err_gr, phase_err_gr
+                panel.Row(table_view),
+                v_to_line_plot["amp"], 
+                panel.Row(complex_amp_err_gr), 
+                panel.Row(v_to_line_plot["phase"])
         )
 
         if station_id_to_coords is not None:
@@ -131,9 +148,9 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
             lon, lat = [[station_id_to_coords[sid][i] for sid in station_id_list] for i in range(2)]
             
             err_name_to_title = {
-                "amp_error": amp_err_title,
+                "amp_bias": amp_err_title,
                 "complex_amp_error": cmplx_amp_err_title, 
-                "phase_error": phase_err_title
+                "phase_bias": phase_err_title
             }
 
             for err_name, err_title in err_name_to_title.items():
