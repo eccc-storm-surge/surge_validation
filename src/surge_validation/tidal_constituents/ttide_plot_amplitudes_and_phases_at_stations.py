@@ -78,13 +78,13 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
     out_dir.mkdir(exist_ok=True, parents=True)
 
     
-    station_id_list = list(all_tide_props)
+    station_id_list = sorted(all_tide_props)
     all_labels = []
     for cname in get_constituent_names(all_tide_props):
 
         err_dict = defaultdict(list)
         
-        for station_id in sorted(station_id_list):
+        for station_id in station_id_list:
             lbl_to_data = all_tide_props[station_id]
             
             if len(all_labels) == 0:
@@ -245,7 +245,8 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
             lat = data[io_manager.LAT_COL_NAME].values[0]
 
             if station_id not in station_id_to_coords:
-                station_id_to_coords[station_id] = (data[io_manager.LON_COL_NAME].values[0], data[io_manager.LAT_COL_NAME].values[0])
+                station_id_to_coords[station_id] = (data[io_manager.LON_COL_NAME].values[0], 
+                                                    data[io_manager.LAT_COL_NAME].values[0])
 
             # calc obs
             # make it a list for uniformity
