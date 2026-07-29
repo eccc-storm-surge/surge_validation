@@ -51,12 +51,12 @@ def calc_tides_spectra(ts_data, dt=timedelta(hours=1), lat=None) -> pd.DataFrame
 
 def get_constituent_names(all_tide_props):
     # get all constituent names
+    const_sets = []
     for stid, tide_props_dict in all_tide_props.items():
-        print(tide_props_dict)
         for lbl, [df, ] in tide_props_dict.items():
-            return df.index
+            const_sets.append(set(df.index))
 
-    return []
+    return sorted(set.intersection(*const_sets))
 
 def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict, 
                                  station_dict: dict, station_id_to_coords: dict | None = None):
@@ -91,6 +91,7 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 all_labels = list([lbl for lbl in lbl_to_data if lbl != io_manager.OBS_COL_NAME])
 
             df_obs = lbl_to_data[io_manager.OBS_COL_NAME][0]
+
 
             for lbl, [df, ] in lbl_to_data.items():
 
@@ -352,10 +353,10 @@ def tidecon_to_dataframe(tidecon: TTideCon):
     # change endiannes if needed
     # fu is read from file
     fu = tidecon["fu"]
-    if fu.dtype.byteorder == ">":
-        # force native byteorder
-        fu = tidecon["fu"]
-        fu = fu.view(fu.dtype.newbyteorder())
+    # if fu.dtype.byteorder == ">":
+    #     # force native byteorder
+    #     fu = tidecon["fu"]
+    #     fu = fu.view(fu.dtype.newbyteorder())
 
     df = pd.DataFrame({
         "nameu": [c if isinstance(c, str) else c.decode().strip() for c in tidecon["nameu"]],
