@@ -352,10 +352,10 @@ def tidecon_to_dataframe(tidecon: TTideCon):
     # change endiannes if needed
     # fu is read from file
     fu = tidecon["fu"]
-    if fu.dtype.byteorder == ">":
-        # force native byteorder
-        fu = tidecon["fu"]
-        fu = fu.view(fu.dtype.newbyteorder())
+    # if fu.dtype.byteorder == ">":
+    #     # force native byteorder
+    #     fu = tidecon["fu"]
+    #     fu = fu.view(fu.dtype.newbyteorder())
 
     df = pd.DataFrame({
         "nameu": [c if isinstance(c, str) else c.decode().strip() for c in tidecon["nameu"]],
