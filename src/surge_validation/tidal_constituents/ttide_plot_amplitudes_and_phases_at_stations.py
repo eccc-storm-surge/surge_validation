@@ -100,7 +100,16 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
 
                 err_dict[("amp_bias", lbl)].append(df.loc[cname, "amp"] - df_obs.loc[cname, "amp"])
                 err_dict[("amp_bias_unc_95", lbl)].append(df.loc[cname, "amp_err"] + df_obs.loc[cname, "amp_err"])
-                err_dict[("phase_bias", lbl)].append(df.loc[cname, "pha"] - df_obs.loc[cname, "pha"])
+
+                # make sure the phase shift accounts for the 360deg periodicity
+                err_dict[("phase_bias", lbl)].append(
+                    np.angle(np.exp(1j * (
+                        np.radians(
+                            df.loc[cname, "pha"] - df_obs.loc[cname, "pha"]))
+                        ), deg=True
+                    )
+                )
+                
                 err_dict[("phase_bias_unc_95", lbl)].append(df.loc[cname, "pha_err"] + df_obs.loc[cname, "pha_err"])
 
                 err_dict[("complex_amp_error", lbl)].append(abs( df.loc[cname, "amp"] * cmath.exp(1j * np.radians(df.loc[cname, "pha"])) - 
