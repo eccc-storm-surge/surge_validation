@@ -29,12 +29,13 @@ def fc(station_dict=default_params.station_dict,
     st_s = f"{st_date:%Y%m%d%H}"
     en_s = f"{en_date:%Y%m%d%H}"
 
-    label = f"{exp_id}_{st_s}_{en_s}_V2"
+    label = f"{exp_id}_{st_s}_{en_s}_V3"
     img_dir = Path(f"data/plots/surgemip/{label}")
 
     exp_id_to_path = {
         "ECCC_GDSPS (Surge)": inp_data_root / "merged_ECCC_GDSPS_2013-2018.dat",
         "UND-ANL_GADCIRC-btp (Surge)": inp_data_root / "merged_UND-ANL_GADCIRC-btp_2013-2018.dat",
+        "GOOGLE-50KM-PRED. (Surge)": inp_data_root / "merged_GOOGLE_50KM_PREDICTIONS_2013-2018.dat",
         # ("ECCC_GDSPS_nofilt (Surge)", inp_data_root / "merged_ECCC_GDSPS_nofilt_2013-2018.dat"),
     }
     
