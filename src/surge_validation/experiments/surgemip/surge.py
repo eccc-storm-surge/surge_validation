@@ -36,6 +36,7 @@ def fc(station_dict=default_params.station_dict,
         "ECCC_GDSPS (Surge)": inp_data_root / "merged_ECCC_GDSPS_2013-2018.dat",
         "UND-ANL_GADCIRC-btp (Surge)": inp_data_root / "merged_UND-ANL_GADCIRC-btp_2013-2018.dat",
         "GOOGLE-50KM-PRED. (Surge)": inp_data_root / "merged_GOOGLE_50KM_PREDICTIONS_2013-2018.dat",
+        "GTSM (Surge)": inp_data_root / "merged_GTSM_2013-2018.dat",
         # ("ECCC_GDSPS_nofilt (Surge)", inp_data_root / "merged_ECCC_GDSPS_nofilt_2013-2018.dat"),
     }
     

@@ -36,6 +36,7 @@ def fc(station_dict=default_params.station_dict,
         "ECCC_GDSPS (TWL)": inp_data_root / "merged_ECCC_GDSPS_2013-2018.dat",
         "UND-ANL_GADCIRC-btp (TWL)": inp_data_root / "merged_UND-ANL_GADCIRC-btp_2013-2018.dat",
         "GOOGLE-50KM-PRED. (TWL)": inp_data_root / "merged_GOOGLE_50KM_PREDICTIONS_2013-2018.dat",
+        "GTSM (TWL)": inp_data_root / "merged_GTSM_2013-2018.dat",
         # ("ECCC_GDSPS_nofilt (TWL)", inp_data_root / "merged_ECCC_GDSPS_nofilt_2013-2018.dat"),
     }
 
@@ -72,7 +73,7 @@ def fc(station_dict=default_params.station_dict,
         "score_map_projection":  Robinson(),
         "score_map_colorbar_position": "bottom",
         "plot_spectra": True,
-        "plot_tide_constituents": False,
+        "plot_tide_constituents": True,
         # number of forecasts to ignore to avoid transients from filtering
         OptionNames.IGNORE_EDGE_FORECASTS: {
             "beg": 0,
