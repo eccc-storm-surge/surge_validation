@@ -35,7 +35,7 @@ def fc(station_dict=default_params.station_dict,
     exp_id_to_path = {
         "ECCC_GDSPS (TWL)": inp_data_root / "merged_ECCC_GDSPS_2013-2018.dat",
         "UND-ANL_GADCIRC-btp (TWL)": inp_data_root / "merged_UND-ANL_GADCIRC-btp_2013-2018.dat",
-        "GOOGLE-50KM-PRED. (TWL)": inp_data_root / "merged_GOOGLE_50KM_PREDICTIONS_2013-2018.dat",
+        "GOOGLE-50KM (TWL)": inp_data_root / "merged_GOOGLE_50KM_PREDICTIONS_2013-2018.dat",
         "GTSM (TWL)": inp_data_root / "merged_GTSM_2013-2018.dat",
         # ("ECCC_GDSPS_nofilt (TWL)", inp_data_root / "merged_ECCC_GDSPS_nofilt_2013-2018.dat"),
     }
