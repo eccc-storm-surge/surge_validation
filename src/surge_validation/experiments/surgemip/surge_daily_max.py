@@ -57,7 +57,7 @@ def fc(station_dict=default_params.station_dict,
     }
 
     b2b_split_seasons = {
-        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="m")
+        f"{t:%b}": (t.month, ) for t in pd.date_range(st_date, en_date, freq="ME")
     }
 
     options = {
@@ -105,6 +105,8 @@ def fc(station_dict=default_params.station_dict,
         exp_id_to_path
     )
     station_dict = {sid: sname for sid, sname in station_dict.items() if sid in stid_list}
+
+    print(f"Retained {len(station_dict) = } common stations for analysis.")
 
     compare_forecast(station_dict=station_dict, exp_id_to_path=exp_id_to_path,
                      exp_id_list=exp_id_labels,
