@@ -77,7 +77,7 @@ def plot_annual_extremes(model_label_to_series: dict[str, pd.DataFrame],
             for _ in range(n_extremes_per_year):
 
                 if len(cur_obs) == 0:
-                    print(f"No data to calculate extremes: {station_id}")
+                    print(f"No data to calculate extremes: {station_id = }; {year = }; {et = }")
                     cur_e_values_obs.append(np.NaN)
                     cur_t_values_obs.append(None)
                     continue
@@ -110,7 +110,7 @@ def plot_annual_extremes(model_label_to_series: dict[str, pd.DataFrame],
             cur_obs = obs_data[obs_data.index.year == year]
             for et in extreme_types:
                 cur_e_values_mod = []
-
+                # t_e - time of extreme event in obs, find the extreme in the model within the time window
                 for t_e in year_to_et_to_te_obs[year][et]:
 
                     if t_e is None:
@@ -153,6 +153,34 @@ def plot_annual_extremes(model_label_to_series: dict[str, pd.DataFrame],
     return label_to_year_to_extreme 
 
 
+def get_all_extreme_types(label_to_year_to_extreme: dict[str, dict[int, dict[str, float]]]) -> list[str]:
+    """Get all extreme types from the label_to_year_to_extreme dictionary
+
+    Args:
+        label_to_year_to_extreme (dict): extremes data
+
+    """
+    for _, year_to_extrema in label_to_year_to_extreme.items():
+        for _, et_to_values in year_to_extrema.items():
+            return [et for et in et_to_values]
+
+    raise LookupError("No meaningful extremes found...")
+
+
+def get_all_years(label_to_year_to_extreme: dict[str, dict[int, dict[str, float]]]) -> list[int]:
+    """Get all extreme types from the label_to_year_to_extreme dictionary
+
+    Args:
+        label_to_year_to_extreme (dict): extremes data
+
+    """
+    for _, year_to_extrema in label_to_year_to_extreme.items():
+        return [y for y in year_to_extrema]
+    
+    raise LookupError("No data found...")
+
+
+
 def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
                                              label_to_color: dict,
                                              options: dict,
@@ -179,24 +207,22 @@ def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
     labels = [] # list of models to compare, including obs.
     years = [] # list of years
     e_types = [] # types of extremes, i.e.: min, max
-    st_ids = [stid for stid in stid_label_to_year_to_extreme]
+
+    st_ids = [stid for stid, label_to_year_to_extreme in stid_label_to_year_to_extreme.items() 
+                if len(label_to_year_to_extreme) - 1 == len(label_to_color)] # -1 for obs
+
+    
+    print(f"plot_all_stations_annual_extrema_scatter: {len(st_ids)} stations to plot")
 
     # determine the list of extreme types
-    for stid, label_to_year_to_extrema in stid_label_to_year_to_extreme.items():
-        labels = [label for label in label_to_year_to_extrema]
-        for label, year_to_extrema in label_to_year_to_extrema.items():
-            years = [y for y in year_to_extrema]
-            for year, et_to_values in year_to_extrema.items():
-                e_types = [et for et in et_to_values]
-                break
-            break
-        break
-    
+    labels = [label for label in stid_label_to_year_to_extreme[st_ids[0]]]
+    e_types = get_all_extreme_types(stid_label_to_year_to_extreme[st_ids[0]])
+    years = get_all_years(stid_label_to_year_to_extreme[st_ids[0]])
+   
     
     for et in e_types:
         label_to_values = {ml: [] for ml in labels}
 
-        skip = set()
         for label in labels:
             label_to_values[label] = []
             for st_id, year in itertools.product(st_ids, years):
@@ -206,6 +232,11 @@ def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
                     label_to_values[label].append(ex_value)
                 else:
                     warnings.warn(f"annual extremes analysis, no data for {st_id = }; {label = }; {year = }")
+
+        # ensure label_to_values has the same length for all labels, otherwise scatter plot will fail
+        lengths = {label: len(values) for label, values in label_to_values.items()}
+        if len(set(lengths.values())) > 1:
+            raise ValueError(f"annual extremes analysis, label_to_values has different lengths: {lengths = }")
 
 
         # remove data if nan is encountered in either model
@@ -238,7 +269,8 @@ def plot_all_stations_annual_extrema_scatter(stid_label_to_year_to_extreme,
             
             if label == obs_key:
                 continue
-           
+
+            assert len(obs_data) == len(label_to_values[label]), f"number of extremes should be the same for all models, got {len(obs_data)} != {len(label_to_values[label])}"
             r2 = r2_score(obs_data, label_to_values[label])
             legend_label = f"{label}, $R^2 = {r2:.2f}$"
 

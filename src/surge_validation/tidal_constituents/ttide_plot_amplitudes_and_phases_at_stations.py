@@ -120,10 +120,19 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
         err_df["Station_Name"] = [station_dict[sid] for sid in station_id_list]
         err_df = err_df.set_index("Station_Id")
 
-        table_view = panel.widgets.Tabulator(err_df.sort_index(axis="columns"), disabled=True)
+        table_view = panel.widgets.Tabulator(err_df.sort_index(axis="columns"), 
+                                             disabled=True, 
+                                             pagination=None)
 
 
-        opts = dict(shared_axes=False, xrotation=90)
+        opts = dict(
+            shared_axes=False,
+            xrotation=90,
+            xaxis=None,
+            responsive=True,
+            frame_width=1600,
+            min_height=300,
+        )
         amp_err_title = "Amplitude bias [m]"
         cmplx_amp_err_title = r"$$\text{{Complex amplitude error }}|A_p e^{{i\phi_p}} - A_o e^{{i\phi_o}}|\text{{ [m]}}$$"
         phase_err_title = "Phase bias [deg]"
@@ -147,10 +156,10 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
 
         column = panel.Column(
                 f"Constituent: {cname}",
-                panel.Row(table_view),
-                v_to_line_plot["amp"], 
-                panel.Row(complex_amp_err_gr), 
-                panel.Row(v_to_line_plot["phase"])
+            panel.Row(v_to_line_plot["amp"], sizing_mode="stretch_width"),
+            panel.Row(complex_amp_err_gr, sizing_mode="stretch_width"),
+            panel.Row(v_to_line_plot["phase"], sizing_mode="stretch_width"),
+            sizing_mode="stretch_width",
         )
 
         if station_id_to_coords is not None:
@@ -190,8 +199,15 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                 layout.opts(shared_axes=True)
                 layout.values()[-1].Points.I.opts(colorbar=True)
 
-                column.append(panel.Column(err_title, layout))
+                column.append(
+                    panel.Column(
+                        err_title,
+                        layout,
+                        sizing_mode="stretch_width",
+                    )
+                )
 
+        column.append(panel.Row(table_view))
         hvplot.save(
             column, out_dir / f"{cname}.html"
         )
@@ -206,7 +222,11 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     img_dir.mkdir(exist_ok=True, parents=True)
 
     options = kwargs.get("options", {})
-    plot_file_format = options.get("plot_file_format", "pdf")
+    plot_file_format = options.get("plot_file_format", "png")
+
+    plt.rcParams.update({
+        "xtick.labelsize": 8,
+    })
 
     station_id_to_coords = {}
 
@@ -273,7 +293,7 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
     # plotting =====================
     for station_id, tide_props_mod in all_tide_props_mod.items():
 
-        fig = plt.figure(figsize=(10, 8), dpi=96)
+        fig = plt.figure(figsize=(14, 10), dpi=120, constrained_layout=True)
         gs = GridSpec(3, 1, hspace=0.3)
 
         ax_amp = fig.add_subplot(gs[0, 0])
@@ -338,17 +358,15 @@ def plot_ttide_tide_spectra(lbl_to_station_to_ts: dict, img_dir: Path,
                            f"\n(for amplitudes > {amp_limit} [m])")
 
 
-        # align x ticks labels
-        for tick_lbl in ax_cpha.get_xticklabels():
-            tick_lbl.set_ha("right")
-
-        for idx, ax in enumerate(fig.get_axes()):
-            ax.tick_params(axis="x", rotation=45)
+        for ax in fig.get_axes():
+            ax.tick_params(axis="x", labelrotation=90, labelsize=6, pad=2)
+            plt.setp(ax.get_xticklabels(), ha="right")
             ax.grid(linestyle="dashed")
 
         ax_amp.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
         img_file = img_dir / f"{station_id}_{stname_to_fname2(station_dict[station_id])}.{plot_file_format}"
+        fig.tight_layout()
         fig.savefig(img_file, bbox_inches="tight", transparent=True)
         plt.close(fig)
 

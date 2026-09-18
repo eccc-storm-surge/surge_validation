@@ -62,6 +62,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     """
     sizing_mode = "stretch_both"
 
+    logger = get_logger(__name__)
     
     if img_dir is None:
         img_dir = Path(".")
@@ -95,7 +96,7 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
     st_sel_obs = st_sel_obs.asfreq(plot_dt)["obs"]
 
     if len(st_sel_obs) == 0:
-        print(f"No obs data for {st_id}, skipping it.")
+        logger.info(f"No obs data for {st_id}, skipping it.")
         return {}
 
     out_plot = img_dir / "interactive" / f"{st_id}_{stname_to_fname2(station_dict[st_id])}.html"
@@ -116,14 +117,15 @@ def plot_time_series_for_station_many_models(swl_list, st_id, label_to_scores=No
         # st_sel_mod.drop_duplicates(subset=io_manager.TIME_COL_NAME, keep="last", inplace=True)
 
         if len(st_sel_mod) == 0:
-            print(f"No model data data for {st_id}, skipping")
+            logger.info(f"No model data data for {st_id}, skipping")
             continue
 
         st_sel_mod.set_index(io_manager.TIME_COL_NAME, inplace=True)
         to_plot = st_sel_mod.asfreq(plot_dt)["mod" + member_id]
+
         
-        print(model_label)
-        print(to_plot.head(40))
+        # logger.info(f"Plotting data for {model_label}")
+        # logger.info(to_plot.head(40))
 
         if remove_ndays_mean is not None:
             to_plot = to_plot - to_plot.rolling(timedelta(days=remove_ndays_mean)).mean()
