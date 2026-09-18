@@ -193,7 +193,7 @@ def compare_forecast(station_dict=default_params.station_dict,
                                     plot_params=options)
             future_list.append(fut)
 
-        print(f"Submitted {len(future_list)} tasks")
+        print(f"Submitted {len(future_list)} tasks for score vs lead_time plots.")
 
         save_scores_to_txt(station_scores, labels, img_dir)
 
