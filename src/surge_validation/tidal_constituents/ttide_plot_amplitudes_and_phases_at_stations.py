@@ -5,6 +5,7 @@ for different obs points
 from collections import OrderedDict
 from datetime import timedelta
 from pathlib import Path
+import typing
 
 from matplotlib.gridspec import GridSpec
 from ttide import TTideCon
@@ -125,14 +126,18 @@ def plot_tide_error_summary_html(out_dir: Path, all_tide_props: dict,
                                              pagination=None)
 
 
-        opts = dict(
+        opts: dict[str, typing.Any] = dict(
             shared_axes=False,
             xrotation=90,
-            xaxis=None,
             responsive=True,
             frame_width=1600,
             min_height=300,
         )
+
+        if len(err_df["amp_bias"]) > 100:
+            opts["xaxis"] = None
+            
+
         amp_err_title = "Amplitude bias [m]"
         cmplx_amp_err_title = r"$$\text{{Complex amplitude error }}|A_p e^{{i\phi_p}} - A_o e^{{i\phi_o}}|\text{{ [m]}}$$"
         phase_err_title = "Phase bias [deg]"
